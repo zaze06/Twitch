@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -72,44 +73,45 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if(!chat.equalsIgnoreCase("")){
+        if (!chat.equalsIgnoreCase("")) {
             twitchClient.getChat().sendMessage(chat, "I was told to leave now so bye!");
         }
     }
 
-    private void onRedemtion(RewardRedeemedEvent event){
+    private void onRedemtion(RewardRedeemedEvent event) {
         String id = event.getRedemption().getReward().getId();
         long cost = event.getRedemption().getReward().getCost();
+        String userName = event.getRedemption().getUser().getDisplayName();
 
 
         Player p = getServer().getOnlinePlayers().toArray(new Player[getServer().getOnlinePlayers().size()])[0];
 
-        if(p == null){
+        if (p == null) {
             return;
         }
 
         int pitch = (int) p.getLocation().getPitch();
         Location pos = p.getLocation().clone();
-        if(pitch < 0){
-            pitch = 180+(-pitch);
+        if (pitch < 0) {
+            pitch = 180 + (-pitch);
         }
-        if(pitch == 360){
+        if (pitch == 360) {
             pitch = 0;
         }
-        if(pitch >= -45 && pitch < 45){
-            pos.add(0,0,-1);
-        }else if(pitch >= 45 && pitch < 135){
-            pos.add(1,0,0);
-        }else if(pitch >= 135 && pitch < 225){
-            pos.add(0,0,1);
-        }else if(pitch >= 225 && pitch < 360){
-            pos.add(-1,0,0);
+        if (pitch >= -45 && pitch < 45) {
+            pos.add(0, 0, -1);
+        } else if (pitch >= 45 && pitch < 135) {
+            pos.add(1, 0, 0);
+        } else if (pitch >= 135 && pitch < 225) {
+            pos.add(0, 0, 1);
+        } else if (pitch >= 225 && pitch < 360) {
+            pos.add(-1, 0, 0);
         }
 
-        int odds = (int)(Math.random()*100);
+        int odds = (int) (Math.random() * 100);
 
-        if(id.equalsIgnoreCase(redemtions.getString("hiss"))){
-            if(odds <= 5){
+        if (id.equalsIgnoreCase(redemtions.getString("hiss"))) {
+            if (odds <= 5) {
 
                 getServer().getWorld("world").spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                     e.setSilent(true);
@@ -117,81 +119,125 @@ public final class Main extends JavaPlugin {
                     e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
                 });
 
-            }else if(odds <= 40){
+            } else if (odds <= 40) {
                 getServer().getWorld("world").spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                     e.setSilent(true);
                     e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
                 });
             }
             //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("BalloonPop"))){
-            if(odds <= 20){
-                for(int x = p.getLocation().getBlockX()-3; x < p.getLocation().getBlockX()+4; x++){
-                    for(int y = p.getLocation().getBlockY()-3; y < p.getLocation().getBlockY()+4; y++){
-                        for(int z = p.getLocation().getBlockZ()-3; z < p.getLocation().getBlockZ()+4; z++){
+        } else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
+            if (odds <= 20) {
+                for (int x = p.getLocation().getBlockX() - 3; x < p.getLocation().getBlockX() + 4; x++) {
+                    for (int y = p.getLocation().getBlockY() - 3; y < p.getLocation().getBlockY() + 4; y++) {
+                        for (int z = p.getLocation().getBlockZ() - 3; z < p.getLocation().getBlockZ() + 4; z++) {
                             p.getWorld().setType(x, y, z, Material.AIR);
                         }
                     }
                 }
             }
-            p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed BalloonPop!");
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("knock"))){
+            p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
+        } else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
 
             p.getWorld().setType(pos, Material.CRIMSON_DOOR);
 
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("boo"))){
-            if(odds <= 10){
-                int pilliger = ((int)(Math.random()*2))+2;
-                int vindicators = ((int)(Math.random()*2))+5;
-                int witch = ((int)(Math.random()*2))+1;
+        } else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
+            if (odds <= 10) {
+                int pilliger = ((int) (Math.random() * 2)) + 2;
+                int vindicators = ((int) (Math.random() * 2)) + 5;
+                int witch = ((int) (Math.random() * 2)) + 1;
                 int evoker = 2;
-                int ravenderVindicator = ((int)(Math.random()*1))+1;
+                int ravenderVindicator = ((int) (Math.random() * 1)) + 1;
                 int ravangerEvoker = 1;
 
                 int total = pilliger + vindicators + witch + evoker + ravangerEvoker + ravenderVindicator;
 
                 Location location = p.getLocation();
 
-                for(int i = 0; i < total; i++){
-                    if(pilliger > 0){
-                        int x = (int)(Math.random()*((location.getBlockX()+30)-(location.getBlockX()-30))+(location.getBlockX()+30));
-                        int z = (int)(Math.random()*((location.getBlockZ()+30)-(location.getBlockZ()-30))+(location.getBlockZ()+30));
-                        int y = p.getWorld().getMaxHeight();
+                for (int i = 0; i < total; i++) {
+                    int x = (int) (Math.random() * ((location.getBlockX() + 30) - (location.getBlockX() - 30)) + (location.getBlockX() + 30));
+                    int z = (int) (Math.random() * ((location.getBlockZ() + 30) - (location.getBlockZ() - 30)) + (location.getBlockZ() + 30));
+                    int y = p.getWorld().getMaxHeight();
 
-                        while(p.getWorld().getBlockAt(x,y,z).getType().isAir() && y != p.getWorld().getMinHeight()){
-                            y--;
+                    while (p.getWorld().getBlockAt(x, y, z).getType().isAir() && y != p.getWorld().getMinHeight()) {
+                        y--;
+                    }
+                    if (y == p.getWorld().getMinHeight()) {
+                        y = p.getLocation().getBlockY();
+                    }
+                    for (int x1 = x - 1; x1 < x + 1; x1++) {
+                        for (int z1 = z - 1; z1 < z + 1; z1++) {
+                            Block blockAt = p.getWorld().getBlockAt(x1, y - 1, z1);
+                            if (blockAt.getType().isAir()) {
+                                blockAt.setType(Material.DIRT);
+                            }
                         }
-                        if(y == p.getWorld().getMinHeight()){
-                            y = p.getLocation().getBlockY();
-                        }
+                    }
+                    if (pilliger > 0) {
+                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            e.setSilent(true);
+                            e.setTarget(p);
+                            e.customName(Component.text(userName));
+                        });
+                        pilliger--;
+                    }
+                    if (vindicators > 0) {
+                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            e.setSilent(true);
+                            e.setTarget(p);
+                            e.customName(Component.text(userName));
+                        });
+                        vindicators--;
+                    }
+                    if (witch > 0) {
+                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            e.setSilent(true);
+                            e.setTarget(p);
+                            e.customName(Component.text(userName));
+                        });
+                        witch--;
+                    }
+                    if (evoker > 0) {
+                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            e.setSilent(true);
+                            e.setTarget(p);
+                            e.customName(Component.text(userName));
+                        });
+                        evoker--;
+                    }
+                    if (ravangerEvoker > 0) {
+                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            e.setSilent(true);
+                            e.setTarget(p);
+                            e.customName(Component.text(userName));
+                            e.addPassenger(EntityType.EVOKER);
+                        });
+                        pilliger--;
                     }
                 }
             }
         }
 
-        if(cost >= 500){
+        if (cost >= 500) {
             p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
-            int odds = (int)(Math.random()*100);
-            if(odds <= 70){
-                getServer().getWorld("world").spawn(p.getLocation(), Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+            if (odds <= 70) {
+                getServer().getWorld("world").spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                     e.setSilent(true);
                     e.setTarget(p);
+                    e.customName(Component.text(userName));
                 });
             }
         }
     }
 
-    private void onChatMessage(ChannelMessageEvent event){
-        if(event.getMessage().equalsIgnoreCase("!test")){
+    private void onChatMessage(ChannelMessageEvent event) {
+        if (event.getMessage().equalsIgnoreCase("!test")) {
             //event.reply(twitchClient.getChat(), "yes i work!");
-            twitchClient.getChat().sendMessage(chat, "yes i work "+event.getUser().getName());
-        }else if(event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")){
-            twitchClient.getChat().sendMessage(chat, "HI, "+event.getUser());
-        }else{
-            if(connectChat) {
+            twitchClient.getChat().sendMessage(chat, "yes i work " + event.getUser().getName());
+        } else if (event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")) {
+            twitchClient.getChat().sendMessage(chat, "HI, " + event.getUser());
+        } else {
+            if (connectChat) {
                 getServer().sendMessage(Component.text("<" + event.getUser().getName() + "> " + event.getMessage()));
             }
         }
@@ -199,8 +245,8 @@ public final class Main extends JavaPlugin {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(label.equalsIgnoreCase("connect")){
-            if(args.length > 0){
+        if (label.equalsIgnoreCase("connect")) {
+            if (args.length > 0) {
                 twitchClient = TwitchClientBuilder.builder()
                         .withEnableChat(true)
                         .withEnablePubSub(true)
@@ -210,38 +256,39 @@ public final class Main extends JavaPlugin {
                 twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
                 chat = args[0];
                 twitchClient.getChat().joinChannel(chat);
-                twitchClient.getChat().sendMessage(chat, "I was told to come hear by "+sender.getName()+" treat me well");
+                twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
                 twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
                 twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
-                sender.getServer().sendMessage(Component.text("Bot connected to "+chat+" stream"));
+                sender.getServer().sendMessage(Component.text("Bot connected to " + chat + " stream"));
                 isConnected = true;
                 return true;
             }
         }
-        if(label.equalsIgnoreCase("disconnect")){
+        if (label.equalsIgnoreCase("disconnect")) {
             twitchClient.getChat().sendMessage(chat, "I was told to leave now, so bye!");
             twitchClient.getChat().leaveChannel(chat);
             twitchClient.close();
             isConnected = false;
-            sender.getServer().sendMessage(Component.text("Bot disconnected from "+chat+" stream"));
+            sender.getServer().sendMessage(Component.text("Bot disconnected from " + chat + " stream"));
             return true;
         }
-        if(label.equalsIgnoreCase("send")){
-            if(args.length > 0){
-                if(isConnected){
+        if (label.equalsIgnoreCase("send")) {
+            if (args.length > 0) {
+                if (isConnected) {
                     StringBuilder message = new StringBuilder();
 
-                    for(String arg : args){
+                    for (String arg : args) {
                         message.append(arg).append(" ");
                     }
 
-                    twitchClient.getChat().sendMessage(chat, "<"+sender.getName()+"> "+message);
-                    getServer().sendMessage(Component.text("<"+sender.getName()+"> "+message));
+                    twitchClient.getChat().sendMessage(chat, "<" + sender.getName() + "> " + message);
+                    getServer().sendMessage(Component.text("<" + sender.getName() + "> " + message));
                 }
             }
         }
-        if(label.equalsIgnoreCase("chat")){
+        if (label.equalsIgnoreCase("chat")) {
             connectChat = !connectChat;
         }
         return false;
     }
+}
