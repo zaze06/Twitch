@@ -31,7 +31,7 @@ public final class Main extends JavaPlugin {
     private final JSONObject credentials = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/credentials.json")));
     private final JSONObject redemtions = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/redemtions.json")));
 
-    private TwitchClient twitchClient;
+    public TwitchClient twitchClient;
 
     private OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
     private CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
@@ -39,9 +39,11 @@ public final class Main extends JavaPlugin {
     private ArrayList<Action> messageEventAction = new ArrayList<>();
     private ArrayList<Action> reademEventAction = new ArrayList<>();
 
-    private String chat = "";
-    private boolean isConnected = false;
-    private boolean connectChat = false;
+    public String chat = null;
+    public boolean isConnected = false;
+    public boolean connectChatTwitch = false;
+    public boolean connectChatMinecraft = false;
+    public Level minecraftChat;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -52,6 +54,8 @@ public final class Main extends JavaPlugin {
     public void onEnable() {
 
         credentialManager.registerIdentityProvider(new TwitchIdentityProvider(credentials.getString("bot_ID"), credentials.getString("bot_Secreat"), ""));
+
+        getServer().getPluginManager().registerEvents(new MyListener(this), this);
 
         /*try{
             File file = new File(getConfig().getCurrentPath()+"bot.json");
@@ -84,11 +88,22 @@ public final class Main extends JavaPlugin {
         String userName = event.getRedemption().getUser().getDisplayName();
 
 
-        Player p = getServer().getOnlinePlayers().toArray(new Player[getServer().getOnlinePlayers().size()])[0];
+        Player player = null;
 
-        if (p == null) {
+        try{
+            player = getServer().getOnlinePlayers().toArray(new Player[getServer().getOnlinePlayers().size()])[0];
+        }catch (IndexOutOfBoundsException ignored){
+
+        }
+
+        if (player == null) {
             return;
         }
+        if(chat == null){
+            return;
+        }
+
+        final Player p = player;
 
         int pitch = (int) p.getLocation().getPitch();
         Location pos = p.getLocation().clone();
@@ -126,7 +141,8 @@ public final class Main extends JavaPlugin {
                 });
             }
             //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
-        } else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
+        }
+        else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
             if (odds <= 20) {
                 for (int x = p.getLocation().getBlockX() - 3; x < p.getLocation().getBlockX() + 4; x++) {
                     for (int y = p.getLocation().getBlockY() - 3; y < p.getLocation().getBlockY() + 4; y++) {
@@ -137,7 +153,8 @@ public final class Main extends JavaPlugin {
                 }
             }
             p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
-        } else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
+        }
+        else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
 
             p.getWorld().setType(pos, Material.CRIMSON_DOOR);
             p.getWorld().spawn(pos, Zombie.class, e -> {
@@ -148,7 +165,8 @@ public final class Main extends JavaPlugin {
                 }
             });
 
-        } else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
+        }
+        else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
             if (odds <= 10) {
                 int pilliger = ((int) (Math.random() * 2)) + 2;
                 int vindicators = ((int) (Math.random() * 2)) + 5;
@@ -244,6 +262,7 @@ public final class Main extends JavaPlugin {
             }
         }
 
+
         if (cost >= 500) {
             p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
             if (odds <= 70) {
@@ -263,7 +282,7 @@ public final class Main extends JavaPlugin {
         } else if (event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")) {
             twitchClient.getChat().sendMessage(chat, "HI, " + event.getUser());
         } else {
-            if (connectChat) {
+            if (connectChatTwitch) {
                 getServer().sendMessage(Component.text("<" + event.getUser().getName() + "> " + event.getMessage()));
             }
         }
@@ -296,6 +315,7 @@ public final class Main extends JavaPlugin {
             twitchClient.close();
             isConnected = false;
             sender.getServer().sendMessage(Component.text("Bot disconnected from " + chat + " stream"));
+            chat = null;
             return true;
         }
         if (label.equalsIgnoreCase("send")) {
@@ -313,7 +333,39 @@ public final class Main extends JavaPlugin {
             }
         }
         if (label.equalsIgnoreCase("chat")) {
-            connectChat = !connectChat;
+            if(args.length > 0){
+                if(args[0].equalsIgnoreCase("twitch")){
+                    connectChatTwitch = !connectChatTwitch;
+                    if(connectChatTwitch) {
+                        getServer().sendMessage(Component.text("<a_twitch_bot_> the twitch chat is now connected to minecraft chat"));
+                        twitchClient.getChat().sendMessage(chat, "twitch chat is now connected to minecraft chat");
+                    }else{
+                        getServer().sendMessage(Component.text("<a_twitch_bot_> the twitch chat is now disconnected to minecraft chat"));
+                        twitchClient.getChat().sendMessage(chat, "twitch chat is now disconnected to minecraft chat");
+                    }
+                }
+                else if(args[0].equalsIgnoreCase("minecraft")){
+                    connectChatMinecraft = !connectChatMinecraft;
+                    if(connectChatMinecraft) {
+                        getServer().sendMessage(Component.text("<a_twitch_bot_> the minecraft chat is now connected to twitch chat"));
+                        twitchClient.getChat().sendMessage(chat, "minecraft chat is now connected to twitch chat");
+                    }else{
+                        getServer().sendMessage(Component.text("<a_twitch_bot_> the minecraft chat is now disconnected to minetwitchcraft chat"));
+                        twitchClient.getChat().sendMessage(chat, "minecraft chat is now disconnected to twitch chat");
+                    }
+                }
+                if(args.length > 1){
+                    if(args[1].equalsIgnoreCase("all")){
+                        minecraftChat = Level.valueOf(args[1].toUpperCase());
+                    }else if(args[1].equalsIgnoreCase("info")){
+                        minecraftChat = Level.valueOf(args[1].toUpperCase());
+                    }else if(args[1].equalsIgnoreCase("chat")){
+                        minecraftChat = Level.valueOf(args[1].toUpperCase());
+                    }
+                }
+            }
+
+            return true;
         }
         return false;
     }
