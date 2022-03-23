@@ -1,0 +1,15 @@
+name: Twitch
+version: '${version}'
+main: alien.twitchIntegration.Main
+api-version: 1.18
+authors: [ Alien ]
+
+commands:
+  connect:
+    description: "start wathing and listing on a twitch chat"
+  disconnect:
+    description: "disconnects from the stream"
+  send:
+    description: "send a message from mc"
+  chat:
+    description: "toggle the showing of twitch chat in-game"
