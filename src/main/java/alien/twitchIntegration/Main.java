@@ -113,14 +113,14 @@ public final class Main extends JavaPlugin {
         if (id.equalsIgnoreCase(redemtions.getString("hiss"))) {
             if (odds <= 5) {
 
-                getServer().getWorld("world").spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                     e.setSilent(true);
                     e.setPowered(true);
                     e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
                 });
 
             } else if (odds <= 40) {
-                getServer().getWorld("world").spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                     e.setSilent(true);
                     e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
                 });
@@ -140,6 +140,13 @@ public final class Main extends JavaPlugin {
         } else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
 
             p.getWorld().setType(pos, Material.CRIMSON_DOOR);
+            p.getWorld().spawn(pos, Zombie.class, e -> {
+                e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                e.setSilent(true);
+                if(odds <= 30){
+                    e.setBaby();
+                }
+            });
 
         } else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
             if (odds <= 10) {
@@ -147,10 +154,10 @@ public final class Main extends JavaPlugin {
                 int vindicators = ((int) (Math.random() * 2)) + 5;
                 int witch = ((int) (Math.random() * 2)) + 1;
                 int evoker = 2;
-                int ravenderVindicator = ((int) (Math.random() * 1)) + 1;
-                int ravangerEvoker = 1;
+                int RavagerVindicator = ((int) (Math.random() * 1)) + 1;
+                int RavagerEvoker = 1;
 
-                int total = pilliger + vindicators + witch + evoker + ravangerEvoker + ravenderVindicator;
+                int total = pilliger + vindicators + witch + evoker + RavagerEvoker + RavagerVindicator;
 
                 Location location = p.getLocation();
 
@@ -174,7 +181,7 @@ public final class Main extends JavaPlugin {
                         }
                     }
                     if (pilliger > 0) {
-                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
                             e.customName(Component.text(userName));
@@ -182,7 +189,7 @@ public final class Main extends JavaPlugin {
                         pilliger--;
                     }
                     if (vindicators > 0) {
-                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
                             e.customName(Component.text(userName));
@@ -190,7 +197,7 @@ public final class Main extends JavaPlugin {
                         vindicators--;
                     }
                     if (witch > 0) {
-                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
                             e.customName(Component.text(userName));
@@ -198,21 +205,40 @@ public final class Main extends JavaPlugin {
                         witch--;
                     }
                     if (evoker > 0) {
-                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
                             e.customName(Component.text(userName));
                         });
                         evoker--;
                     }
-                    if (ravangerEvoker > 0) {
-                        getServer().getWorld("world").spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                    if (RavagerEvoker > 0) {
+                        int finalY1 = y;
+                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
                             e.customName(Component.text(userName));
-                            e.addPassenger(EntityType.EVOKER);
+                            e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY1, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
+                                e.customName(Component.text(userName));
+                                e.setTarget(p);
+                                e.setSilent(true);
+                            }));
                         });
-                        pilliger--;
+                        RavagerEvoker--;
+                    }
+                    if(RavagerVindicator > 0){
+                        int finalY = y;
+                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            e.setSilent(true);
+                            e.setTarget(p);
+                            e.customName(Component.text(userName));
+                            e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
+                                e.customName(Component.text(userName));
+                                e.setTarget(p);
+                                e.setSilent(true);
+                            }));
+                        });
+                        RavagerVindicator--;
                     }
                 }
             }
@@ -221,7 +247,7 @@ public final class Main extends JavaPlugin {
         if (cost >= 500) {
             p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
             if (odds <= 70) {
-                getServer().getWorld("world").spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                p.getWorld().spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                     e.setSilent(true);
                     e.setTarget(p);
                     e.customName(Component.text(userName));
