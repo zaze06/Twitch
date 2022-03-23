@@ -43,7 +43,7 @@ public final class Main extends JavaPlugin {
     public boolean isConnected = false;
     public boolean connectChatTwitch = false;
     public boolean connectChatMinecraft = false;
-    public Level minecraftChat;
+    public Level minecraftChat = Level.ALL;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -168,6 +168,7 @@ public final class Main extends JavaPlugin {
         }
         else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
             if (odds <= 10) {
+                //List of monsters to spawn
                 int pilliger = ((int) (Math.random() * 2)) + 2;
                 int vindicators = ((int) (Math.random() * 2)) + 5;
                 int witch = ((int) (Math.random() * 2)) + 1;
@@ -178,7 +179,7 @@ public final class Main extends JavaPlugin {
                 int total = pilliger + vindicators + witch + evoker + RavagerEvoker + RavagerVindicator;
 
                 Location location = p.getLocation();
-
+// redemtion nut, should spawn some monsters accoring to the list above
                 for (int i = 0; i < total; i++) {
                     int x = (int) (Math.random() * ((location.getBlockX() + 30) - (location.getBlockX() - 30)) + (location.getBlockX() + 30));
                     int z = (int) (Math.random() * ((location.getBlockZ() + 30) - (location.getBlockZ() - 30)) + (location.getBlockZ() + 30));
@@ -189,15 +190,16 @@ public final class Main extends JavaPlugin {
                     }
                     if (y == p.getWorld().getMinHeight()) {
                         y = p.getLocation().getBlockY();
-                    }
-                    for (int x1 = x - 1; x1 < x + 1; x1++) {
-                        for (int z1 = z - 1; z1 < z + 1; z1++) {
-                            Block blockAt = p.getWorld().getBlockAt(x1, y - 1, z1);
-                            if (blockAt.getType().isAir()) {
-                                blockAt.setType(Material.DIRT);
+                        for (int x1 = x - 1; x1 < x + 1; x1++) {
+                            for (int z1 = z - 1; z1 < z + 1; z1++) {
+                                Block blockAt = p.getWorld().getBlockAt(x1, y - 1, z1);
+                                if (blockAt.getType().isAir()) {
+                                    blockAt.setType(Material.DIRT);
+                                }
                             }
                         }
                     }
+
                     if (pilliger > 0) {
                         p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
@@ -206,7 +208,7 @@ public final class Main extends JavaPlugin {
                         });
                         pilliger--;
                     }
-                    if (vindicators > 0) {
+                    else if (vindicators > 0) {
                         p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
@@ -214,7 +216,7 @@ public final class Main extends JavaPlugin {
                         });
                         vindicators--;
                     }
-                    if (witch > 0) {
+                    else if (witch > 0) {
                         p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
@@ -222,7 +224,7 @@ public final class Main extends JavaPlugin {
                         });
                         witch--;
                     }
-                    if (evoker > 0) {
+                    else if (evoker > 0) {
                         p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
                             e.setTarget(p);
@@ -230,7 +232,7 @@ public final class Main extends JavaPlugin {
                         });
                         evoker--;
                     }
-                    if (RavagerEvoker > 0) {
+                    else if (RavagerEvoker > 0) {
                         int finalY1 = y;
                         p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
@@ -244,7 +246,7 @@ public final class Main extends JavaPlugin {
                         });
                         RavagerEvoker--;
                     }
-                    if(RavagerVindicator > 0){
+                    else if(RavagerVindicator > 0){
                         int finalY = y;
                         p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                             e.setSilent(true);
@@ -282,7 +284,7 @@ public final class Main extends JavaPlugin {
         } else if (event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")) {
             twitchClient.getChat().sendMessage(chat, "HI, " + event.getUser());
         } else {
-            if (connectChatTwitch) {
+            if (connectChatTwitch && !event.getUser().getName().equalsIgnoreCase("StreamElements")) {
                 getServer().sendMessage(Component.text("<" + event.getUser().getName() + "> " + event.getMessage()));
             }
         }
@@ -363,6 +365,8 @@ public final class Main extends JavaPlugin {
                         minecraftChat = Level.valueOf(args[1].toUpperCase());
                     }
                 }
+            }else{
+                sender.sendMessage("<a_twitch_bot_> you ar missing parameaters use /chat <twitch/minecraft> [all/info/chat note oly works for mc chat and it defaults to all]");
             }
 
             return true;
