@@ -10,6 +10,8 @@ import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -21,6 +23,7 @@ import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -33,11 +36,10 @@ public final class Main extends JavaPlugin {
 
     public TwitchClient twitchClient;
 
-    private OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
-    private CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
+    private final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
+    private final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
 
-    private ArrayList<Action> messageEventAction = new ArrayList<>();
-    private ArrayList<Action> reademEventAction = new ArrayList<>();
+    private final ArrayList<Action> reademEventAction = new ArrayList<>();
 
     public String chat = null;
     public boolean isConnected = false;
@@ -57,22 +59,28 @@ public final class Main extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new MyListener(this), this);
 
-        /*try{
-            File file = new File(getConfig().getCurrentPath()+"bot.json");
+        try{
+            File file = new File(getDataFolder(),"actions.json");
 
-            if(!file.exists()){
-                if(file.exists()){
-                    JSONObject data = new JSONObject(Loader.leadFile(new FileInputStream(file)));
-                    JSONObject messageEvents = data.getJSONObject("messageEventAction");
-                    for (String key : messageEvents.keySet()){
-                        JSONObject messageEvent = messageEvents.getJSONObject(key);
-                        messageEventAction.add(new Action());
-                    }
-                }
+            BufferedReader in = new BufferedReader(new FileReader(file));
+            StringBuilder data = new StringBuilder();
+            String tmp = "";
+            while ((tmp = in.readLine()) != null){
+                data.append(tmp);
             }
-        }catch (Exception e){
 
-        }*/
+            JSONObject redeemData = new JSONObject(data);
+
+            for(String key : redeemData.keySet()){
+                JSONObject redemtion = redeemData.getJSONObject(key);
+
+            }
+
+        }catch (JSONException e) {
+            getServer().sendMessage(Component.text("You don't have a valid redemption action file", TextColor.color(255,0,0)));
+        }catch(Exception ignored){
+
+        }
     }
 
     @Override
@@ -294,30 +302,38 @@ public final class Main extends JavaPlugin {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (label.equalsIgnoreCase("connect")) {
             if (args.length > 0) {
-                twitchClient = TwitchClientBuilder.builder()
-                        .withEnableChat(true)
-                        .withEnablePubSub(true)
-                        .withChatAccount(credential)
-                        .withCredentialManager(credentialManager)
-                        .build();
-                twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
-                chat = args[0];
-                twitchClient.getChat().joinChannel(chat);
-                twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
-                twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
-                twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
-                sender.getServer().sendMessage(Component.text("Bot connected to " + chat + " stream"));
-                isConnected = true;
+                if(chat == null) {
+                    twitchClient = TwitchClientBuilder.builder()
+                            .withEnableChat(true)
+                            .withEnablePubSub(true)
+                            .withChatAccount(credential)
+                            .withCredentialManager(credentialManager)
+                            .build();
+                    twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
+                    chat = args[0];
+                    twitchClient.getChat().joinChannel(chat);
+                    twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
+                    twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
+                    twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
+                    getServer().sendMessage(Component.text("Bot connected to " + chat + " stream"));
+                    isConnected = true;
+                }else{
+                    sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first");
+                }
                 return true;
             }
         }
         if (label.equalsIgnoreCase("disconnect")) {
-            twitchClient.getChat().sendMessage(chat, "I was told to leave now, so bye!");
-            twitchClient.getChat().leaveChannel(chat);
-            twitchClient.close();
-            isConnected = false;
-            sender.getServer().sendMessage(Component.text("Bot disconnected from " + chat + " stream"));
-            chat = null;
+            if(chat != null) {
+                twitchClient.getChat().sendMessage(chat, "I was told to leave now, so bye!");
+                twitchClient.getChat().leaveChannel(chat);
+                twitchClient.close();
+                isConnected = false;
+                sender.getServer().sendMessage(Component.text("Bot disconnected from " + chat + " stream"));
+                chat = null;
+            }else{
+                sender.sendMessage("<a_twitch_bot_> I'm not connected to a stream. Use /connect <twitch user>");
+            }
             return true;
         }
         if (label.equalsIgnoreCase("send")) {
@@ -333,6 +349,10 @@ public final class Main extends JavaPlugin {
                     getServer().sendMessage(Component.text("<" + sender.getName() + "> " + message));
                 }
             }
+
+            getServer().sendMessage(Component.text("<a_twitch_bot_> missing parameters usage /chat <text to send>"));
+
+            return true;
         }
         if (label.equalsIgnoreCase("chat")) {
             if(args.length > 0){
@@ -366,7 +386,7 @@ public final class Main extends JavaPlugin {
                     }
                 }
             }else{
-                sender.sendMessage("<a_twitch_bot_> you ar missing parameaters use /chat <twitch/minecraft> [all/info/chat note oly works for mc chat and it defaults to all]");
+                sender.sendMessage("<a_twitch_bot_> you ar missing parameters use /chat <twitch/minecraft> [all/info/chat note oly works for mc chat and it defaults to all]");
             }
 
             return true;

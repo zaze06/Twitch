@@ -10,6 +10,6 @@ commands:
   disconnect:
     description: "disconnects from the stream"
   send:
-    description: "send a message from mc"
+    description: "send a message from minecraft"
   chat:
-    description: "toggle the showing of twitch chat in-game"
+    description: "connect twitch chat to minecraft or minecraft chat to twitch"
