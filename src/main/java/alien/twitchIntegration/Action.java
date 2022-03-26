@@ -1,16 +1,28 @@
 package alien.twitchIntegration;
 
+import org.bukkit.entity.EntityType;
+
+import java.util.ArrayList;
+
 public class Action {
     String id;
+    ArrayList<Resualt> resualts = new ArrayList<>();
 
 
 
-    class resualt{
-        Types type;
+    class Resualt{
+        final Types type;
+        final int odds;
 
+        public Resualt(Types type, int odds) {
+            this.type = type;
+            this.odds = odds;
+        }
 
-        public void doAction(){
+        public boolean doAction(){
+            if(type == Types.SPAWN){
 
+            }
         }
     }
     enum Types{
