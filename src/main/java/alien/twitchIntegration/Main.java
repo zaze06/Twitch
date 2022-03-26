@@ -22,6 +22,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -133,19 +134,25 @@ public final class Main extends JavaPlugin {
 
         int odds = (int) (Math.random() * 100);
 
+        System.out.println(odds+"");
+
         if (id.equalsIgnoreCase(redemtions.getString("hiss"))) {
             if (odds <= 5) {
-
-                p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                    e.setSilent(true);
-                    e.setPowered(true);
-                    e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                getServer().getScheduler().runTask(this, () -> {
+                    p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        e.setSilent(true);
+                        e.setPowered(true);
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    });
                 });
 
             } else if (odds <= 40) {
-                p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                    e.setSilent(true);
-                    e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+
+                getServer().getScheduler().runTask(this, () -> {
+                    p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        e.setSilent(true);
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    });
                 });
             }
             //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
@@ -165,14 +172,15 @@ public final class Main extends JavaPlugin {
         else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
 
             p.getWorld().setType(pos, Material.CRIMSON_DOOR);
-            p.getWorld().spawn(pos, Zombie.class, e -> {
-                e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                e.setSilent(true);
-                if(odds <= 30){
-                    e.setBaby();
-                }
+            getServer().getScheduler().runTask(this, () -> {
+                p.getWorld().spawn(pos, Zombie.class, e -> {
+                    e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    e.setSilent(true);
+                    if (odds <= 30) {
+                        e.setBaby();
+                    }
+                });
             });
-
         }
         else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
             if (odds <= 10) {
@@ -208,64 +216,76 @@ public final class Main extends JavaPlugin {
                         }
                     }
 
+                    int finalY = y;
+
                     if (pilliger > 0) {
-                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                            e.setSilent(true);
-                            e.setTarget(p);
-                            e.customName(Component.text(userName));
-                        });
+                        getServer().getScheduler().runTask(this, () -> {
+                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                                        e.setSilent(true);
+                                        e.setTarget(p);
+                                        e.customName(Component.text(userName));
+                                    });
+                            });
                         pilliger--;
                     }
                     else if (vindicators > 0) {
-                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                            e.setSilent(true);
-                            e.setTarget(p);
-                            e.customName(Component.text(userName));
-                        });
+                        getServer().getScheduler().runTask(this, () -> {
+                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                                        e.setSilent(true);
+                                        e.setTarget(p);
+                                        e.customName(Component.text(userName));
+                                    });
+                                });
                         vindicators--;
                     }
                     else if (witch > 0) {
-                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                            e.setSilent(true);
-                            e.setTarget(p);
-                            e.customName(Component.text(userName));
-                        });
+                        getServer().getScheduler().runTask(this, () -> {
+                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                                        e.setSilent(true);
+                                        e.setTarget(p);
+                                        e.customName(Component.text(userName));
+                                    });
+                                });
                         witch--;
                     }
                     else if (evoker > 0) {
-                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                            e.setSilent(true);
-                            e.setTarget(p);
-                            e.customName(Component.text(userName));
-                        });
+                        getServer().getScheduler().runTask(this, () -> {
+                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                                        e.setSilent(true);
+                                        e.setTarget(p);
+                                        e.customName(Component.text(userName));
+                                    });
+                                });
                         evoker--;
                     }
                     else if (RavagerEvoker > 0) {
-                        int finalY1 = y;
-                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                            e.setSilent(true);
-                            e.setTarget(p);
-                            e.customName(Component.text(userName));
-                            e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY1, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
-                                e.customName(Component.text(userName));
-                                e.setTarget(p);
-                                e.setSilent(true);
-                            }));
-                        });
+                        getServer().getScheduler().runTask(this, () -> {
+                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                                        e.setSilent(true);
+                                        e.setTarget(p);
+                                        e.customName(Component.text(userName));
+                                        e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
+                                            e.customName(Component.text(userName));
+                                            e.setTarget(p);
+                                            e.setSilent(true);
+                                        }));
+                                    });
+                                });
                         RavagerEvoker--;
                     }
                     else if(RavagerVindicator > 0){
-                        int finalY = y;
-                        p.getWorld().spawn(new Location(p.getWorld(), x, y, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                            e.setSilent(true);
-                            e.setTarget(p);
-                            e.customName(Component.text(userName));
-                            e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
-                                e.customName(Component.text(userName));
-                                e.setTarget(p);
-                                e.setSilent(true);
-                            }));
-                        });
+                        getServer().getScheduler().runTask(this, () -> {
+                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                                        e.setSilent(true);
+                                        e.setTarget(p);
+                                        e.customName(Component.text(userName));
+                                        e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
+                                            e.customName(Component.text(userName));
+                                            e.setTarget(p);
+                                            e.setSilent(true);
+                                        }));
+                                    });
+                                });
                         RavagerVindicator--;
                     }
                 }
@@ -276,10 +296,12 @@ public final class Main extends JavaPlugin {
         if (cost >= 500) {
             p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
             if (odds <= 70) {
-                p.getWorld().spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                    e.setSilent(true);
-                    e.setTarget(p);
-                    e.customName(Component.text(userName));
+                getServer().getScheduler().runTask(this, () -> {
+                    p.getWorld().spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        e.setSilent(true);
+                        e.setTarget(p);
+                        e.customName(Component.text(userName));
+                    });
                 });
             }
         }
@@ -309,13 +331,13 @@ public final class Main extends JavaPlugin {
                             .withChatAccount(credential)
                             .withCredentialManager(credentialManager)
                             .build();
-                    twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
                     chat = args[0];
+                    twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
                     twitchClient.getChat().joinChannel(chat);
                     twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
                     twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
                     twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
-                    getServer().sendMessage(Component.text("Bot connected to " + chat + " stream"));
+                    sender.getServer().sendMessage(Component.text("Bot connected to " + chat + " stream"));
                     isConnected = true;
                 }else{
                     sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first");

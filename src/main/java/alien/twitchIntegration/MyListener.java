@@ -18,7 +18,7 @@ public class MyListener implements Listener {
     @EventHandler
     public void onChatMessageEvent(AsyncChatEvent e){
         if(plugin.isConnected && plugin.chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.CHAT)){
-            plugin.twitchClient.getChat().sendMessage(plugin.chat, "<"+e.getPlayer().displayName()+"> "+PaperComponents.plainTextSerializer().serialize(e.message()));
+            plugin.twitchClient.getChat().sendMessage(plugin.chat, "<"+e.getPlayer().getName()+"> "+PaperComponents.plainTextSerializer().serialize(e.message()));
         }
     }
 
