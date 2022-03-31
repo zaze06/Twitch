@@ -128,9 +128,7 @@ public final class Main extends JavaPlugin {
 
         try{
             player = getServer().getOnlinePlayers().toArray(new Player[getServer().getOnlinePlayers().size()])[0];
-        }catch (IndexOutOfBoundsException ignored){
-
-        }
+        }catch (IndexOutOfBoundsException ignored){}
 
         if (player == null) {
             return;
@@ -151,11 +149,14 @@ public final class Main extends JavaPlugin {
         }
         if (pitch >= -45 && pitch < 45) {
             pos.add(0, 0, -1);
-        } else if (pitch >= 45 && pitch < 135) {
+        }
+        else if (pitch >= 45 && pitch < 135) {
             pos.add(1, 0, 0);
-        } else if (pitch >= 135 && pitch < 225) {
+        }
+        else if (pitch >= 135 && pitch < 225) {
             pos.add(0, 0, 1);
-        } else if (pitch >= 225 && pitch < 360) {
+        }
+        else if (pitch >= 225 && pitch < 360) {
             pos.add(-1, 0, 0);
         }
 
@@ -325,7 +326,9 @@ public final class Main extends JavaPlugin {
         }
         else if(id.equalsIgnoreCase(redemtions.getString("boo"))){
             if(odds <= 70) {
-                p.addPotionEffect(PotionEffectType.BLINDNESS.createEffect(20*20, 3));
+                getServer().getScheduler().runTask(this, () -> {
+                    p.addPotionEffect(PotionEffectType.BLINDNESS.createEffect(20 * 20, 3));
+                });
             }
         }
         else if(id.equalsIgnoreCase(redemtions.getString("Mission Failed"))){
@@ -333,7 +336,48 @@ public final class Main extends JavaPlugin {
             else if(odds <= 60) time = 20;
             disableShit = true;
         }
-
+        else if(id.equalsIgnoreCase(redemtions.getString("Drop it"))){
+            if(odds <= 20) {
+                getServer().getScheduler().runTask(this, () -> {
+                    for (int y = p.getLocation().getBlockY() + 4; y >= -60; y--) {
+                        for (int x = -2; x <= 2; x++) {
+                            for (int z = -2; z <= 2; z++) {
+                                p.getWorld().setType(x, y, z, Material.AIR);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        else if(id.equalsIgnoreCase(redemtions.getString("Name Generator"))){
+            getServer().getScheduler().runTask(this, () -> {
+                p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int)(Math.random()*p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e ->{
+                    e.customName(Component.text(event.getRedemption().getUserInput()));
+                });
+                p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int)(Math.random()*p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e ->{
+                    e.customName(Component.text(event.getRedemption().getUserInput()));
+                });
+            });
+        }
+        else if(id.equalsIgnoreCase(redemtions.getString("Ara Ara"))){
+            if(odds <= 50){
+                getServer().getScheduler().runTask(this, () -> {
+                    p.getWorld().spawn(pos, Evoker.class, e -> {
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    });
+                    p.getWorld().spawn(pos, Evoker.class, e -> {
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    });
+                    p.getWorld().spawn(pos, Vindicator.class, e -> {
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    });
+                    p.getWorld().spawn(pos, Vindicator.class, e -> {
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                    });
+                    p.addPotionEffect(PotionEffectType.SLOW.createEffect(60*20, 2));
+                });
+            }
+        }
 
         if (cost >= 500) {
             p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
