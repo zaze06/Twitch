@@ -22,11 +22,16 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.util.ArrayList;
 
@@ -47,6 +52,14 @@ public final class Main extends JavaPlugin {
     public boolean connectChatTwitch = false;
     public boolean connectChatMinecraft = false;
     public Level minecraftChat = Level.ALL;
+
+    public ArrayList<PotionEffectType> potionEffectTypes = new ArrayList<>();
+
+    public int time = 0;
+
+    public Timer timer;
+    public boolean disableShit = false;
+
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -82,6 +95,20 @@ public final class Main extends JavaPlugin {
         }catch(Exception ignored){
 
         }
+
+        potionEffectTypes.add(PotionEffectType.BLINDNESS);
+        potionEffectTypes.add(PotionEffectType.POISON);
+        potionEffectTypes.add(PotionEffectType.BAD_OMEN);
+        potionEffectTypes.add(PotionEffectType.WITHER);
+
+        timer = new Timer(1000, e -> {
+            time--;
+            if(time == 0){
+                disableShit = false;
+
+                timer.stop();
+            }
+        });
     }
 
     @Override
@@ -159,20 +186,25 @@ public final class Main extends JavaPlugin {
         }
         else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
             if (odds <= 20) {
-                for (int x = p.getLocation().getBlockX() - 3; x < p.getLocation().getBlockX() + 4; x++) {
-                    for (int y = p.getLocation().getBlockY() - 3; y < p.getLocation().getBlockY() + 4; y++) {
-                        for (int z = p.getLocation().getBlockZ() - 3; z < p.getLocation().getBlockZ() + 4; z++) {
-                            p.getWorld().setType(x, y, z, Material.AIR);
+                getServer().getScheduler().runTask(this, () -> {
+                    for (int x = p.getLocation().getBlockX() - 3; x < p.getLocation().getBlockX() + 4; x++) {
+                        for (int y = p.getLocation().getBlockY() - 3; y < p.getLocation().getBlockY() + 4; y++) {
+                            for (int z = p.getLocation().getBlockZ() - 3; z < p.getLocation().getBlockZ() + 4; z++) {
+                                p.getWorld().setType(x, y, z, Material.AIR);
+                            }
                         }
                     }
-                }
+                    int i = (int)(Math.random()*potionEffectTypes.size());
+                    p.addPotionEffect(potionEffectTypes.get(i).createEffect(40*20, 4));
+                    i = (int)(Math.random()*potionEffectTypes.size());
+                    p.addPotionEffect(potionEffectTypes.get(i).createEffect(40*20, 4));
+                });
             }
             p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
         }
         else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
-
-            p.getWorld().setType(pos, Material.CRIMSON_DOOR);
             getServer().getScheduler().runTask(this, () -> {
+                p.getWorld().setType(pos, Material.CRIMSON_DOOR);
                 p.getWorld().spawn(pos, Zombie.class, e -> {
                     e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
                     e.setSilent(true);
@@ -290,6 +322,16 @@ public final class Main extends JavaPlugin {
                     }
                 }
             }
+        }
+        else if(id.equalsIgnoreCase(redemtions.getString("boo"))){
+            if(odds <= 70) {
+                p.addPotionEffect(PotionEffectType.BLINDNESS.createEffect(20*20, 3));
+            }
+        }
+        else if(id.equalsIgnoreCase(redemtions.getString("Mission Failed"))){
+            if(odds <= 20) time = 60;
+            else if(odds <= 60) time = 20;
+            disableShit = true;
         }
 
 
