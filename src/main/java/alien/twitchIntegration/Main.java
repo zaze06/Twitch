@@ -19,6 +19,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -60,6 +61,7 @@ public final class Main extends JavaPlugin {
     public Timer timer;
     public boolean disableShit = false;
 
+    public FileConfiguration config = getConfig();
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -96,6 +98,23 @@ public final class Main extends JavaPlugin {
         catch(Exception ignored){
 
         }
+
+        config.addDefault("ChargedCreeperOdds", 5);
+        config.addDefault("CreeperOdds", 40);
+        config.addDefault("BalloonPopOdds", 50);
+        config.addDefault("KnockKnockOdds", 100);
+        config.addDefault("KnockKnockBabyOdds", 20);
+        config.addDefault("NutOdds", 20);
+        config.addDefault("BooOdds", 70);
+        config.addDefault("MissionFailedOdds60s", 40);
+        config.addDefault("MissionFailedOdds30s", 100);
+        config.addDefault("DropItOdds", 20);
+        config.addDefault("NameGenOdds", 100);
+        config.addDefault("AraAraOdds", 50);
+        config.addDefault("HydrateOdds", 100);
+        config.addDefault("Debug", false);
+        config.options().copyDefaults(true);
+        saveConfig();
 
         potionEffectTypes.add(PotionEffectType.BLINDNESS);
         potionEffectTypes.add(PotionEffectType.POISON);
@@ -164,9 +183,12 @@ public final class Main extends JavaPlugin {
         int odds = (int) (Math.random() * 100);
 
         System.out.println(odds+"");
+        if(config.getBoolean("Debug")){
+            twitchClient.getChat().sendPrivateMessage("AlienFromDia", odds+"");
+        }
 
         if (id.equalsIgnoreCase(redemtions.getString("hiss"))) {
-            if (odds <= 5) {
+            if (odds <= config.getInt("ChargedCreeperOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                         e.setSilent(true);
@@ -175,7 +197,7 @@ public final class Main extends JavaPlugin {
                     });
                 });
 
-            } else if (odds <= 40) {
+            } else if (odds <= config.getInt("CreeperOdds")) {
 
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
@@ -187,7 +209,7 @@ public final class Main extends JavaPlugin {
             //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
         }
         else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
-            if (odds <= 20) {
+            if (odds <= config.getInt("BalloonPopOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     for (int x = -3; x < 4; x++) {
                         for (int y = -3; y < 4; y++) {
@@ -201,23 +223,25 @@ public final class Main extends JavaPlugin {
                     i = (int)(Math.random()*potionEffectTypes.size());
                     p.addPotionEffect(potionEffectTypes.get(i).createEffect(40*20, 4));
                 });
+                p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
             }
-            p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
         }
         else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
-            getServer().getScheduler().runTask(this, () -> {
-                p.getWorld().setType(pos, Material.CRIMSON_DOOR);
-                p.getWorld().spawn(pos, Zombie.class, e -> {
-                    e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    e.setSilent(true);
-                    if (odds <= 30) {
-                        e.setBaby();
-                    }
+            if (odds <= config.getInt("KnockKnockBabyOdds")){
+                getServer().getScheduler().runTask(this, () -> {
+                    p.getWorld().setType(pos, Material.CRIMSON_DOOR);
+                    p.getWorld().spawn(pos, Zombie.class, e -> {
+                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
+                        e.setSilent(true);
+                        if (odds <= 30) {
+                            e.setBaby();
+                        }
+                    });
                 });
-            });
+            }
         }
         else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
-            if (odds <= 10) {
+            if (odds <= config.getInt("NutOdds")) {
                 //List of monsters to spawn
                 int pilliger = ((int) (Math.random() * 2)) + 2;
                 int vindicators = ((int) (Math.random() * 2)) + 5;
@@ -326,19 +350,19 @@ public final class Main extends JavaPlugin {
             }
         }
         else if(id.equalsIgnoreCase(redemtions.getString("boo"))){
-            if(odds <= 70) {
+            if(odds <= config.getInt("BooOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     p.addPotionEffect(PotionEffectType.BLINDNESS.createEffect(20 * 20, 3));
                 });
             }
         }
         else if(id.equalsIgnoreCase(redemtions.getString("Mission Failed"))){
-            if(odds <= 20) time = 60;
-            else if(odds <= 60) time = 20;
+            if(odds <= config.getInt("MissionFailedOdds60s")) time = 60;
+            else if(odds <= config.getInt("MissionFailedOdds30s")) time = 30;
             disableShit = true;
         }
         else if(id.equalsIgnoreCase(redemtions.getString("Drop it"))){
-            if(odds <= 20) {
+            if(odds <= config.getInt("DropItOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     for (int y = p.getLocation().getBlockY() + 4; y >= -60; y--) {
                         for (int x = -2; x <= 2; x++) {
@@ -351,17 +375,19 @@ public final class Main extends JavaPlugin {
             }
         }
         else if(id.equalsIgnoreCase(redemtions.getString("Name Generator"))){
-            getServer().getScheduler().runTask(this, () -> {
-                p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int)(Math.random()*p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e ->{
-                    e.customName(Component.text(event.getRedemption().getUserInput()));
+            if(odds <= config.getInt("NameGenOdds")) {
+                getServer().getScheduler().runTask(this, () -> {
+                    p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        e.customName(Component.text(event.getRedemption().getUserInput()));
+                    });
+                    p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                        e.customName(Component.text(event.getRedemption().getUserInput()));
+                    });
                 });
-                p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int)(Math.random()*p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e ->{
-                    e.customName(Component.text(event.getRedemption().getUserInput()));
-                });
-            });
+            }
         }
         else if(id.equalsIgnoreCase(redemtions.getString("Ara Ara"))){
-            if(odds <= 50){
+            if(odds <= config.getInt("AraAraOdds")){
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().spawn(pos, Evoker.class, e -> {
                         e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
@@ -380,17 +406,19 @@ public final class Main extends JavaPlugin {
             }
         }
         else if(id.equalsIgnoreCase(redemtions.getString("Hydrate"))){
-            getServer().getScheduler().runTask(this, () -> {
-                for(int x = -50; x <= 50; x++){
-                    for(int y = -50; y <= 50; y++){
-                        for(int z = -50; z <= 50; z++){
-                            if(p.getWorld().getType(p.getLocation().getBlockX()+x, p.getLocation().getBlockY()+y, p.getLocation().getBlockZ()+z).isAir()) {
-                                p.getWorld().setType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ()+z, Material.WATER);
+            if(odds <= config.getInt("HydrateOdds")) {
+                getServer().getScheduler().runTask(this, () -> {
+                    for (int x = -50; x <= 50; x++) {
+                        for (int y = -50; y <= 50; y++) {
+                            for (int z = -50; z <= 50; z++) {
+                                if (p.getWorld().getType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z).isAir()) {
+                                    p.getWorld().setType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z, Material.WATER);
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
         }
 
         if (cost >= 500) {
@@ -411,9 +439,14 @@ public final class Main extends JavaPlugin {
         if (event.getMessage().equalsIgnoreCase("!test")) {
             //event.reply(twitchClient.getChat(), "yes i work!");
             twitchClient.getChat().sendMessage(chat, "yes i work " + event.getUser().getName());
-        } else if (event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")) {
+        }
+        else if (event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")) {
             twitchClient.getChat().sendMessage(chat, "HI, " + event.getUser());
-        } else {
+        }
+        else if(event.getMessage().startsWith("!source")){
+            twitchClient.getChat().sendMessage(chat, "I'm a bot made by @AlienFromDia and my source code is located at https://github.com/zaze06/Twitch");
+        }
+        else {
             if (connectChatTwitch && !event.getUser().getName().equalsIgnoreCase("StreamElements")) {
                 getServer().sendMessage(Component.text("<" + event.getUser().getName() + "> " + event.getMessage()));
             }
