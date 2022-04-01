@@ -92,7 +92,8 @@ public final class Main extends JavaPlugin {
 
         }catch (JSONException e) {
             getServer().sendMessage(Component.text("You don't have a valid redemption action file", TextColor.color(255,0,0)));
-        }catch(Exception ignored){
+        }
+        catch(Exception ignored){
 
         }
 
@@ -188,10 +189,10 @@ public final class Main extends JavaPlugin {
         else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
             if (odds <= 20) {
                 getServer().getScheduler().runTask(this, () -> {
-                    for (int x = p.getLocation().getBlockX() - 3; x < p.getLocation().getBlockX() + 4; x++) {
-                        for (int y = p.getLocation().getBlockY() - 3; y < p.getLocation().getBlockY() + 4; y++) {
-                            for (int z = p.getLocation().getBlockZ() - 3; z < p.getLocation().getBlockZ() + 4; z++) {
-                                p.getWorld().setType(x, y, z, Material.AIR);
+                    for (int x = -3; x < 4; x++) {
+                        for (int y = -3; y < 4; y++) {
+                            for (int z = -3; z < 4; z++) {
+                                p.getWorld().setType(p.getLocation().getBlockX()+x, p.getLocation().getBlockY()+y, p.getLocation().getBlockZ()+z, Material.AIR);
                             }
                         }
                     }
@@ -342,7 +343,7 @@ public final class Main extends JavaPlugin {
                     for (int y = p.getLocation().getBlockY() + 4; y >= -60; y--) {
                         for (int x = -2; x <= 2; x++) {
                             for (int z = -2; z <= 2; z++) {
-                                p.getWorld().setType(x, y, z, Material.AIR);
+                                p.getWorld().setType(p.getLocation().getBlockX()+x, y, p.getLocation().getBlockZ()+z, Material.AIR);
                             }
                         }
                     }
@@ -377,6 +378,19 @@ public final class Main extends JavaPlugin {
                     p.addPotionEffect(PotionEffectType.SLOW.createEffect(60*20, 2));
                 });
             }
+        }
+        else if(id.equalsIgnoreCase(redemtions.getString("Hydrate"))){
+            getServer().getScheduler().runTask(this, () -> {
+                for(int x = -50; x <= 50; x++){
+                    for(int y = -50; y <= 50; y++){
+                        for(int z = -50; z <= 50; z++){
+                            if(p.getWorld().getType(p.getLocation().getBlockX()+x, p.getLocation().getBlockY()+y, p.getLocation().getBlockZ()+z).isAir()) {
+                                p.getWorld().setType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ()+z, Material.WATER);
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         if (cost >= 500) {
