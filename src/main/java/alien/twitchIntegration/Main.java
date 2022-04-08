@@ -147,7 +147,7 @@ public final class Main extends JavaPlugin {
         Player player = null;
 
         try{
-            player = getServer().getOnlinePlayers().toArray(new Player[getServer().getOnlinePlayers().size()])[0];
+            player = getServer().getOnlinePlayers().toArray(new Player[0])[0];
         }catch (IndexOutOfBoundsException ignored){}
 
         if (player == null) {
@@ -208,7 +208,7 @@ public final class Main extends JavaPlugin {
             }
             //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
         }
-        else if (id.equalsIgnoreCase(redemtions.getString("BalloonPop"))) {
+        else if (id.equalsIgnoreCase(redemtions.getString("balloonPop"))) {
             if (odds <= config.getInt("BalloonPopOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     for (int x = -3; x < 4; x++) {
@@ -421,7 +421,7 @@ public final class Main extends JavaPlugin {
             }
         }
 
-        if (cost >= 500) {
+        if (cost >= 100) {
             p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
             if (odds <= 70) {
                 getServer().getScheduler().runTask(this, () -> {
@@ -470,7 +470,7 @@ public final class Main extends JavaPlugin {
                     twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
                     twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
                     twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
-                    sender.getServer().sendMessage(Component.text("Bot connected to " + chat + " stream"));
+                    sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot connected to " + chat + " stream"));
                     isConnected = true;
                 }else{
                     sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first");
@@ -484,7 +484,7 @@ public final class Main extends JavaPlugin {
                 twitchClient.getChat().leaveChannel(chat);
                 twitchClient.close();
                 isConnected = false;
-                sender.getServer().sendMessage(Component.text("Bot disconnected from " + chat + " stream"));
+                sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot disconnected from " + chat + " stream"));
                 chat = null;
             }else{
                 sender.sendMessage("<a_twitch_bot_> I'm not connected to a stream. Use /connect <twitch user>");
