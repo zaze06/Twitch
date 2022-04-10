@@ -10,31 +10,30 @@ import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.Color;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class Main extends JavaPlugin {
 
@@ -61,7 +60,17 @@ public final class Main extends JavaPlugin {
     public Timer timer;
     public boolean disableShit = false;
 
+    public Timer looper;
+
     public FileConfiguration config = getConfig();
+
+    public Map<String, Integer> veiwerPoits = new HashMap<>();
+
+    public ArrayList<String> spawnedHelpers = new ArrayList<>();
+
+    public Team friendlyTeam;
+
+    public Player host;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -129,12 +138,36 @@ public final class Main extends JavaPlugin {
                 timer.stop();
             }
         });
+
+        looper = new Timer(100, e -> {
+
+        });
+
+        boolean teamExist = false;
+
+        for(Team team : getServer().getScoreboardManager().getMainScoreboard().getTeams()){
+            if(team.getName().equalsIgnoreCase("friendly")) {
+                teamExist = true;
+                break;
+            }
+        }
+
+        if(!teamExist) {
+            friendlyTeam = getServer().getScoreboardManager().getMainScoreboard().registerNewTeam("friendly");
+
+            friendlyTeam.setAllowFriendlyFire(false);
+            friendlyTeam.color(NamedTextColor.AQUA);
+        }else{
+            friendlyTeam = getServer().getScoreboardManager().getMainScoreboard().getTeam("friendly");
+        }
     }
 
     @Override
     public void onDisable() {
-        if (!chat.equalsIgnoreCase("")) {
-            twitchClient.getChat().sendMessage(chat, "I was told to leave now so bye!");
+        if(chat != null) {
+            if (!chat.equalsIgnoreCase("")) {
+                twitchClient.getChat().sendMessage(chat, "I was told to leave now so bye!");
+            }
         }
     }
 
@@ -422,16 +455,16 @@ public final class Main extends JavaPlugin {
         }
 
         if (cost >= 100) {
-            p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
-            if (odds <= 70) {
-                getServer().getScheduler().runTask(this, () -> {
+            getServer().getScheduler().runTask(this, () -> {
+                p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
+                if (odds <= 70) {
                     p.getWorld().spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                         e.setSilent(true);
                         e.setTarget(p);
                         e.customName(Component.text(userName));
                     });
-                });
-            }
+                }
+            });
         }
     }
 
@@ -455,30 +488,56 @@ public final class Main extends JavaPlugin {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if(label.equalsIgnoreCase("spawn")){
+            if(sender instanceof Player p) {
+                int pro = 3;
+                if(args.length > 0){
+                    try{
+                        pro = Integer.parseInt(args[0]);
+                    }catch (Exception ignored){}
+                }
+                host = p;
+                int finalPro = pro;
+                getServer().getScheduler().runTask(this, () -> {
+                    Skeleton e = p.getWorld().spawn(p.getLocation(), Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM);
+                    SkeletonGoal ai = new SkeletonGoal(this, e);
+                    if(!Bukkit.getMobGoals().hasGoal(e, ai.getKey())){
+                        Bukkit.getMobGoals().addGoal(e, finalPro, ai);
+                    }
+                    friendlyTeam.addEntities(e);
+                });
+            }
+        }else
+
         if (label.equalsIgnoreCase("connect")) {
             if (args.length > 0) {
-                if(chat == null) {
-                    twitchClient = TwitchClientBuilder.builder()
-                            .withEnableChat(true)
-                            .withEnablePubSub(true)
-                            .withChatAccount(credential)
-                            .withCredentialManager(credentialManager)
-                            .build();
-                    chat = args[0];
-                    twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
-                    twitchClient.getChat().joinChannel(chat);
-                    twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
-                    twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
-                    twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
-                    sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot connected to " + chat + " stream"));
-                    isConnected = true;
+                if(sender instanceof Player p) {
+                    if (chat == null) {
+                        twitchClient = TwitchClientBuilder.builder()
+                                .withEnableChat(true)
+                                .withEnablePubSub(true)
+                                .withChatAccount(credential)
+                                .withCredentialManager(credentialManager)
+                                .build();
+                        chat = args[0];
+                        twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
+                        twitchClient.getChat().joinChannel(chat);
+                        twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
+                        twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
+                        twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
+                        sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot connected to " + chat + " stream"));
+                        isConnected = true;
+                        host = p;
+                    } else {
+                        sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first");
+                    }
                 }else{
-                    sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first");
+                    sender.sendMessage("<a_twitch_bot_> I'm Sorry but i require that this command should be run by a player");
                 }
                 return true;
             }
         }
-        if (label.equalsIgnoreCase("disconnect")) {
+        else if (label.equalsIgnoreCase("disconnect")) {
             if(chat != null) {
                 twitchClient.getChat().sendMessage(chat, "I was told to leave now, so bye!");
                 twitchClient.getChat().leaveChannel(chat);
@@ -486,12 +545,13 @@ public final class Main extends JavaPlugin {
                 isConnected = false;
                 sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot disconnected from " + chat + " stream"));
                 chat = null;
+                host = null;
             }else{
                 sender.sendMessage("<a_twitch_bot_> I'm not connected to a stream. Use /connect <twitch user>");
             }
             return true;
         }
-        if (label.equalsIgnoreCase("send")) {
+        else if (label.equalsIgnoreCase("send")) {
             if (args.length > 0) {
                 if (isConnected) {
                     StringBuilder message = new StringBuilder();
@@ -509,7 +569,7 @@ public final class Main extends JavaPlugin {
 
             return true;
         }
-        if (label.equalsIgnoreCase("chat")) {
+        else if (label.equalsIgnoreCase("chat")) {
             if(args.length > 0){
                 if(args[0].equalsIgnoreCase("twitch")){
                     connectChatTwitch = !connectChatTwitch;

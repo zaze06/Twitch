@@ -13,3 +13,4 @@ commands:
     description: "send a message from minecraft"
   chat:
     description: "connect twitch chat to minecraft or minecraft chat to twitch"
+  spawn:

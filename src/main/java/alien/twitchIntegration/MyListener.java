@@ -1,14 +1,19 @@
 package alien.twitchIntegration;
 
+import com.github.twitch4j.tmi.domain.Chatters;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import io.papermc.paper.text.PaperComponents;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 
 public class MyListener implements Listener {
 
@@ -26,9 +31,24 @@ public class MyListener implements Listener {
     }
 
     @EventHandler
-    public void onDeathEvent(PlayerDeathEvent e) {
-        if (plugin.isConnected && plugin.chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.INFO)) {
-            plugin.twitchClient.getChat().sendMessage(plugin.chat, PaperComponents.plainTextSerializer().serialize(e.deathMessage()));
+    public void onDeathEvent(EntityDamageByEntityEvent e) {
+        if(e.getEntity() instanceof Player p){
+            if(p.isDead())
+            if (plugin.isConnected && plugin.chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.INFO)) {
+                //plugin.twitchClient.getChat().sendMessage(plugin.chat, PaperComponents.plainTextSerializer().serialize(e.deathMessage()));
+            }
+            Component component = e.getDamager().customName();
+            if(component != null){
+                String cName = PaperComponents.plainTextSerializer().serialize(component);
+                if(plugin.veiwerPoits.containsKey(cName)){
+                    plugin.veiwerPoits.replace(cName, 100);
+                }else{
+                    Chatters chatters = plugin.twitchClient.getMessagingInterface().getChatters(plugin.chat).execute();
+                    for(String key : chatters.getAllViewers()){
+                        plugin.veiwerPoits.put(key, 50);
+                    }
+                }
+            }
         }
     }
 
@@ -48,6 +68,13 @@ public class MyListener implements Listener {
                     || type == Material.JUNGLE_BOAT || type == Material.SPRUCE_BOAT) {
                 e.setCancelled(true);
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerJoinEvent(PlayerJoinEvent e){
+        if(plugin.friendlyTeam.hasEntity(e.getPlayer())){
+            plugin.friendlyTeam.addPlayer(e.getPlayer());
         }
     }
 }
