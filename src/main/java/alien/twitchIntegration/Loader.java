@@ -1,6 +1,10 @@
 package alien.twitchIntegration;
 
+import com.github.twitch4j.helix.domain.User;
+
 import java.io.*;
+import java.util.Collections;
+import java.util.List;
 
 public class Loader {
     public static String leadFile(InputStream s) {

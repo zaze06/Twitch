@@ -8,7 +8,10 @@ import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.auth.providers.TwitchIdentityProvider;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 
+import com.github.twitch4j.helix.domain.User;
+import com.github.twitch4j.helix.domain.UserList;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
+import com.github.twitch4j.tmi.domain.Chatters;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -17,6 +20,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Waterlogged;
+import org.bukkit.block.data.type.Door;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -30,10 +35,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 
 public final class Main extends JavaPlugin {
 
@@ -42,8 +47,10 @@ public final class Main extends JavaPlugin {
 
     public TwitchClient twitchClient;
 
-    private final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
-    private final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
+    public final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
+    public final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
+
+    private final JSONObject mysql = credentials.getJSONObject("mysql");
 
     private final ArrayList<Action> reademEventAction = new ArrayList<>();
 
@@ -61,16 +68,23 @@ public final class Main extends JavaPlugin {
     public boolean disableShit = false;
 
     public Timer looper;
+    public Timer pointAccumulation;
 
     public FileConfiguration config = getConfig();
 
-    public Map<String, Integer> veiwerPoits = new HashMap<>();
+    public final Map<String, Integer> viewerPoints = new HashMap<>();
 
     public ArrayList<String> spawnedHelpers = new ArrayList<>();
 
     public Team friendlyTeam;
 
     public Player host;
+
+    public Connection conn = null;
+
+    private boolean grace = false;
+    private int graceTime = 0;
+    private int graceTimeOrig = 0;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -79,6 +93,45 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
+            conn = DriverManager.getConnection("jdbc:mysql://"+mysql.getString("ip")+"/"+mysql.getString("database")+"?user="+ mysql.getString("username")+"&password="+ mysql.getString("password"));
+        } catch (Exception ex) {
+            getServer().getLogger().warning("Cant connect to sql server, defaulting to json backup may be out of date");
+            try {
+                JSONObject points = new JSONObject(Loader.leadFile(new FileInputStream(System.getProperty("user.dir")+"/data/backup.json")));
+                for(String key : points.keySet()){
+                    viewerPoints.put(key, points.getInt(key));
+                }
+            } catch (FileNotFoundException e) {
+                getServer().getLogger().warning("Cant find file "+System.getProperty("user.dir")+"/data/backup.json"+" this file be be created");
+                File file = new File(System.getProperty("user.dir")+"/data/backup.json");
+                try {
+                    new File(file.getParent()).mkdirs();
+                    file.createNewFile();
+                } catch (IOException exc) {
+                    exc.printStackTrace();
+                }
+            }
+            //ex.printStackTrace();
+        }
+        if(conn != null) {
+            try {
+                Statement stmt = conn.createStatement();
+
+                ResultSet rs = stmt.executeQuery("select * from mcpoits.aniki");
+
+                for (int row = 1; row <= rs.getRow(); row++) {
+                    rs.absolute(row);
+                    viewerPoints.put(rs.getString("id"), rs.getInt("points"));
+                }
+            } catch (SQLException ex) {
+                // handle any errors
+                System.out.println("SQLException: " + ex.getMessage());
+                System.out.println("SQLState: " + ex.getSQLState());
+                System.out.println("VendorError: " + ex.getErrorCode());
+            }
+        }
 
         credentialManager.registerIdentityProvider(new TwitchIdentityProvider(credentials.getString("bot_ID"), credentials.getString("bot_Secreat"), ""));
 
@@ -131,17 +184,77 @@ public final class Main extends JavaPlugin {
         potionEffectTypes.add(PotionEffectType.WITHER);
 
         timer = new Timer(1000, e -> {
-            time--;
-            if(time == 0){
+            if(time > 0){
+                time--;
+            }else
+            if(time == 0 && disableShit){
                 disableShit = false;
+            }
 
-                timer.stop();
+            if(graceTime > 0){
+                graceTime--;
+            }else
+            if(graceTime == 0 && grace){
+                grace = false;
+                getServer().sendMessage(Component.text("<a_twitch_bot_> grace period is now over"));
+            }
+
+            if(graceTime == graceTimeOrig/2 && grace){
+                getServer().sendMessage(Component.text("<a_twitch_bot_> "+(graceTimeOrig/2/60)+" min left on grace period"));
+            }else if(graceTime == 10 && grace){
+                getServer().sendMessage(Component.text("<a_twitch_bot_> 10 seconds left on grace period"));
+            }else if(graceTime == 5 && grace){
+                getServer().sendMessage(Component.text("<a_twitch_bot_> 5 seconds left on grace period"));
             }
         });
 
-        looper = new Timer(100, e -> {
+        timer.start();
 
+        looper = new Timer(20*1000*60, e -> {
+            if(conn != null) {
+                StringBuilder data = new StringBuilder("insert into aniki(id, points) values ");
+                Set<String> set = viewerPoints.keySet();
+                int i = 0;
+                for (String key : set) {
+
+                    data.append("(").append(key).append(", ").append(viewerPoints.get(key)).append(")").append((i < set.size() ? ", " : ";"));
+                    i++;
+                }
+                try {
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(data.toString());
+                } catch (SQLException ex) {
+                    // handle any errors
+                    System.out.println("SQLException: " + ex.getMessage());
+                    System.out.println("SQLState: " + ex.getSQLState());
+                    System.out.println("VendorError: " + ex.getErrorCode());
+                }
+            }else{
+                JSONObject points = new JSONObject();
+                for(String key : viewerPoints.keySet()){
+                    points.put(key, viewerPoints.get(key));
+                }
+                File file = new File(System.getProperty("user.dir")+"/data/backup.json");
+                try{
+                    if(!file.exists()){
+                        file.createNewFile();
+                    }
+                    BufferedWriter out = new BufferedWriter(new FileWriter(file));
+                    out.write(points.toString(4));
+                    out.flush();
+                }catch (Exception ignored){}
+            }
         });
+
+        looper.start();
+
+        pointAccumulation = new Timer(5*1000*60, e -> {
+            List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
+            for(User key : users){
+                viewerPoints.put(key.getId(), 10);
+            }
+        });
+
 
         boolean teamExist = false;
 
@@ -168,6 +281,36 @@ public final class Main extends JavaPlugin {
             if (!chat.equalsIgnoreCase("")) {
                 twitchClient.getChat().sendMessage(chat, "I was told to leave now so bye!");
             }
+        }
+        if(conn != null) {
+            StringBuilder data = new StringBuilder("insert into aniki(id, points) values ");
+            Set<String> set = viewerPoints.keySet();
+            int i = 0;
+            for (String key : set) {
+
+                data.append("(").append(key).append(", ").append(viewerPoints.get(key)).append(")").append((i < set.size() ? ", " : ";"));
+                i++;
+            }
+            try {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(data.toString());
+            } catch (SQLException ex) {
+                // handle any errors
+                System.out.println("SQLException: " + ex.getMessage());
+                System.out.println("SQLState: " + ex.getSQLState());
+                System.out.println("VendorError: " + ex.getErrorCode());
+            }
+        }else{
+            JSONObject points = new JSONObject();
+            for(String key : viewerPoints.keySet()){
+                points.put(key, viewerPoints.get(key));
+            }
+            File file = new File(System.getProperty("user.dir")+"/data/backup.json");
+            try{
+                BufferedWriter out = new BufferedWriter(new FileWriter(file));
+                out.write(points.toString(4));
+                out.flush();
+            }catch (Exception ignored){}
         }
     }
 
@@ -220,7 +363,7 @@ public final class Main extends JavaPlugin {
             twitchClient.getChat().sendPrivateMessage("AlienFromDia", odds+"");
         }
 
-        if (id.equalsIgnoreCase(redemtions.getString("hiss"))) {
+        if (id.equalsIgnoreCase(redemtions.getString("hiss")) && !grace) {
             if (odds <= config.getInt("ChargedCreeperOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
@@ -241,7 +384,7 @@ public final class Main extends JavaPlugin {
             }
             //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
         }
-        else if (id.equalsIgnoreCase(redemtions.getString("balloonPop"))) {
+        else if (id.equalsIgnoreCase(redemtions.getString("balloonPop")) && !grace) {
             if (odds <= config.getInt("BalloonPopOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     for (int x = -3; x < 4; x++) {
@@ -259,7 +402,7 @@ public final class Main extends JavaPlugin {
                 p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
             }
         }
-        else if (id.equalsIgnoreCase(redemtions.getString("knock"))) {
+        else if (id.equalsIgnoreCase(redemtions.getString("knock")) && !grace) {
             if (odds <= config.getInt("KnockKnockBabyOdds")){
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().setType(pos, Material.CRIMSON_DOOR);
@@ -273,7 +416,7 @@ public final class Main extends JavaPlugin {
                 });
             }
         }
-        else if (id.equalsIgnoreCase(redemtions.getString("nut"))) {
+        else if (id.equalsIgnoreCase(redemtions.getString("nut")) && !grace) {
             if (odds <= config.getInt("NutOdds")) {
                 //List of monsters to spawn
                 int pilliger = ((int) (Math.random() * 2)) + 2;
@@ -382,19 +525,19 @@ public final class Main extends JavaPlugin {
                 }
             }
         }
-        else if(id.equalsIgnoreCase(redemtions.getString("boo"))){
+        else if(id.equalsIgnoreCase(redemtions.getString("boo")) && !grace){
             if(odds <= config.getInt("BooOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     p.addPotionEffect(PotionEffectType.BLINDNESS.createEffect(20 * 20, 3));
                 });
             }
         }
-        else if(id.equalsIgnoreCase(redemtions.getString("Mission Failed"))){
+        else if(id.equalsIgnoreCase(redemtions.getString("Mission Failed")) && !grace){
             if(odds <= config.getInt("MissionFailedOdds60s")) time = 60;
             else if(odds <= config.getInt("MissionFailedOdds30s")) time = 30;
             disableShit = true;
         }
-        else if(id.equalsIgnoreCase(redemtions.getString("Drop it"))){
+        else if(id.equalsIgnoreCase(redemtions.getString("Drop it")) && !grace){
             if(odds <= config.getInt("DropItOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     for (int y = p.getLocation().getBlockY() + 4; y >= -60; y--) {
@@ -407,7 +550,7 @@ public final class Main extends JavaPlugin {
                 });
             }
         }
-        else if(id.equalsIgnoreCase(redemtions.getString("Name Generator"))){
+        else if(id.equalsIgnoreCase(redemtions.getString("Name Generator")) && !grace){
             if(odds <= config.getInt("NameGenOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
@@ -419,7 +562,7 @@ public final class Main extends JavaPlugin {
                 });
             }
         }
-        else if(id.equalsIgnoreCase(redemtions.getString("Ara Ara"))){
+        else if(id.equalsIgnoreCase(redemtions.getString("Ara Ara")) && !grace){
             if(odds <= config.getInt("AraAraOdds")){
                 getServer().getScheduler().runTask(this, () -> {
                     p.getWorld().spawn(pos, Evoker.class, e -> {
@@ -438,14 +581,17 @@ public final class Main extends JavaPlugin {
                 });
             }
         }
-        else if(id.equalsIgnoreCase(redemtions.getString("Hydrate"))){
+        else if(id.equalsIgnoreCase(redemtions.getString("Hydrate")) && !grace){
             if(odds <= config.getInt("HydrateOdds")) {
                 getServer().getScheduler().runTask(this, () -> {
                     for (int x = -50; x <= 50; x++) {
                         for (int y = -50; y <= 50; y++) {
                             for (int z = -50; z <= 50; z++) {
-                                if (p.getWorld().getType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z).isAir()) {
+                                Block block = p.getWorld().getBlockAt(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z);
+                                if (block.getType().isAir()) {
                                     p.getWorld().setType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z, Material.WATER);
+                                }else if(!(block instanceof Door) && block.getBlockData() instanceof Waterlogged w){
+                                    w.setWaterlogged(true);
                                 }
                             }
                         }
@@ -469,15 +615,101 @@ public final class Main extends JavaPlugin {
     }
 
     private void onChatMessage(ChannelMessageEvent event) {
-        if (event.getMessage().equalsIgnoreCase("!test")) {
+        String command = event.getMessage();
+        String[] args = new String[0];
+
+        try{
+            command = event.getMessage().substring(0, event.getMessage().indexOf(' '));
+        }catch (Exception ignored){
+
+        }
+        try {
+            args = event.getMessage().substring(event.getMessage().indexOf(' ')).split(" ");
+            ArrayList<String> tmp = new ArrayList<>();
+            for(int i = 1; i < args.length; i++){
+                tmp.add(args[i]);
+            }
+            if(tmp.size() > 0) {
+                args = tmp.toArray(new String[0]);
+            }
+        }catch (Exception ignored){}
+
+        if(command.equalsIgnoreCase("-add")){
+            viewerPoints.put(event.getUser().getId(), 10);
+        }else
+
+        if (command.equalsIgnoreCase("-test")) {
             //event.reply(twitchClient.getChat(), "yes i work!");
-            twitchClient.getChat().sendMessage(chat, "yes i work " + event.getUser().getName());
+            twitchClient.getChat().sendMessage(chat, "yes i work @" + event.getUser().getName());
         }
-        else if (event.getMessage().contains("a_twitch_bot_") && event.getMessage().contains("hi")) {
-            twitchClient.getChat().sendMessage(chat, "HI, " + event.getUser());
-        }
-        else if(event.getMessage().startsWith("!source")){
+        else if(command.equalsIgnoreCase("-source")){
             twitchClient.getChat().sendMessage(chat, "I'm a bot made by @AlienFromDia and my source code is located at https://github.com/zaze06/Twitch");
+        }
+        else if(command.equalsIgnoreCase("-points")){
+            if(args.length > 0){
+                User user = null;
+                String uname = args[0];
+                try{
+                    uname = args[0].split("@")[1];
+                }catch (Exception ignored){}
+                try{
+
+                    user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers().get(0);
+                }catch (Exception e){getServer().getLogger().warning(e.getCause().toString());}
+                if(user != null) {
+                    twitchClient.getChat().sendMessage(chat, user.getDisplayName() + " currently have " + viewerPoints.get(user.getId()) + " Soul of the lost");
+                }else{
+                    /*List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers();
+                    StringBuilder data = new StringBuilder();
+                    for(User user1 : users){
+                        data.append(user1.getDisplayName());
+                    }
+                    getServer().getLogger().info(data.toString());*/
+                    twitchClient.getChat().sendMessage(chat, "Sorry @"+event.getUser().getName()+" i cant find "+uname+" :(");
+                }
+            }else {
+                Integer poits = viewerPoints.get(event.getUser().getId());
+                twitchClient.getChat().sendMessage(chat, "@" + event.getUser().getName() + " you currently have " + (poits!=null?poits:0) + " Soul of the lost");
+            }
+        }
+        else if(command.equalsIgnoreCase("-products")){
+            twitchClient.getChat().sendMessage(chat, "@"+event.getUser().getName()+" you have the production list hear https://docs.google.com/spreadsheets/d/1irumyoV5YYpgm9GQeObTmKXLtBU5vXMnBXgybnwufeI/ you may need to change to the products page(bottom of the screen)");
+        }
+        else if(command.startsWith("-buy")){
+            if(args.length > 0){
+                Player player = null;
+
+                try{
+                    player = getServer().getOnlinePlayers().toArray(new Player[0])[0];
+                }catch (IndexOutOfBoundsException ignored){}
+
+                if (player == null) {
+                    return;
+                }
+
+                Integer points = viewerPoints.get(event.getUser().getId());
+
+                if(args[0].equalsIgnoreCase("0") || args[0].equalsIgnoreCase("heal")){
+                    if(points >= 100){
+                        player.setHealth(20);
+                        points-=100;
+                    }
+                }else if(args[0].equalsIgnoreCase("1") || args[0].equalsIgnoreCase("feed")){
+                    if(points >= 100){
+                        player.setFoodLevel(20);
+                        points-=100;
+                    }
+                }else if(args[0].equalsIgnoreCase("2") || args[0].equalsIgnoreCase("grace")){
+                    if(points >= 500){
+                        grace = true;
+                        graceTime = 60;
+                        graceTimeOrig = graceTime;
+                        points-=500;
+                    }
+                }
+
+                viewerPoints.put(event.getUser().getId(), points);
+            }
         }
         else {
             if (connectChatTwitch && !event.getUser().getName().equalsIgnoreCase("StreamElements")) {
@@ -516,6 +748,8 @@ public final class Main extends JavaPlugin {
                         twitchClient = TwitchClientBuilder.builder()
                                 .withEnableChat(true)
                                 .withEnablePubSub(true)
+                                .withEnableHelix(true)
+                                .withEnableTMI(true)
                                 .withChatAccount(credential)
                                 .withCredentialManager(credentialManager)
                                 .build();
@@ -600,7 +834,22 @@ public final class Main extends JavaPlugin {
                         minecraftChat = Level.valueOf(args[1].toUpperCase());
                     }
                 }
-            }else{
+            }else if(label.equalsIgnoreCase("grace")) {
+                if(isConnected){
+                    if(args.length > 0){
+                        try {
+                            graceTime = Integer.parseInt(args[0])*60;
+                            graceTimeOrig = graceTime;
+                            grace = true;
+                        }catch (Exception e){
+                            sender.sendMessage("<a_twitch_bot_> first argument was not an int pleas provide <time in min> for the first argument");
+                        }
+                    }else{
+                        sender.sendMessage("<a_twitch_bot_> first argument was not an found pleas provide <time in min> for the first argument");
+                    }
+                }
+            }
+            else{
                 sender.sendMessage("<a_twitch_bot_> you ar missing parameters use /chat <twitch/minecraft> [all/info/chat note oly works for mc chat and it defaults to all]");
             }
 
