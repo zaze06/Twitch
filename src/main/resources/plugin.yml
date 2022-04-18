@@ -6,7 +6,7 @@ authors: [ Alien ]
 
 commands:
   connect:
-    description: "start wathing and listing on a twitch chat"
+    description: "start waithing and listing on a twitch chat"
   disconnect:
     description: "disconnects from the stream"
   send:
@@ -14,3 +14,8 @@ commands:
   chat:
     description: "connect twitch chat to minecraft or minecraft chat to twitch"
   spawn:
+    description: ""
+  grace:
+    description: "adds a grace period for <min>"
+  points:
+    description: "Gives a top 10 list of users and there points"

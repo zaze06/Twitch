@@ -1,5 +1,7 @@
 package alien.twitchIntegration;
 
+import alien.twitchIntegration.util.Factorys;
+import alien.twitchIntegration.util.ValueComparator;
 import com.github.philippheuer.credentialmanager.CredentialManager;
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
@@ -7,21 +9,15 @@ import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.auth.providers.TwitchIdentityProvider;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
-
+import com.github.twitch4j.common.events.domain.EventUser;
 import com.github.twitch4j.helix.domain.User;
-import com.github.twitch4j.helix.domain.UserList;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
-import com.github.twitch4j.tmi.domain.Chatters;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.Waterlogged;
-import org.bukkit.block.data.type.Door;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -34,57 +30,46 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.swing.*;
 import javax.swing.Timer;
 import java.io.*;
 import java.sql.*;
+import java.time.Instant;
 import java.util.*;
 
 public final class Main extends JavaPlugin {
 
     private final JSONObject credentials = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/credentials.json")));
-    private final JSONObject redemtions = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/redemtions.json")));
-
+    public final JSONObject redemptions = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/redemtions.json")));
     public TwitchClient twitchClient;
-
     public final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
     public final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
-
     private final JSONObject mysql = credentials.getJSONObject("mysql");
-
     private final ArrayList<Action> reademEventAction = new ArrayList<>();
-
     public String chat = null;
     public boolean isConnected = false;
     public boolean connectChatTwitch = false;
     public boolean connectChatMinecraft = false;
     public Level minecraftChat = Level.ALL;
-
     public ArrayList<PotionEffectType> potionEffectTypes = new ArrayList<>();
-
     public int time = 0;
-
     public Timer timer;
     public boolean disableShit = false;
-
     public Timer looper;
     public Timer pointAccumulation;
-
     public FileConfiguration config = getConfig();
-
     public final Map<String, Integer> viewerPoints = new HashMap<>();
-
     public ArrayList<String> spawnedHelpers = new ArrayList<>();
-
     public Team friendlyTeam;
-
     public Player host;
-
     public Connection conn = null;
-
-    private boolean grace = false;
+    public boolean grace = false;
     private int graceTime = 0;
     private int graceTimeOrig = 0;
+    private final boolean[] timersNotFinished = new boolean[12];
+    private final int[] timersDelay = new int[12];
+    private Timer timers;
+    public String channelId = null;
+    public static Main plugin;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -93,9 +78,21 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        plugin = this;
+
+        credentialManager.registerIdentityProvider(new TwitchIdentityProvider(credentials.getString("bot_ID"), credentials.getString("bot_Secreat"), ""));
+
+        Arrays.fill(timersNotFinished, false);
+        Arrays.fill(timersDelay, 0);
+
+
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
-            conn = DriverManager.getConnection("jdbc:mysql://"+mysql.getString("ip")+"/"+mysql.getString("database")+"?user="+ mysql.getString("username")+"&password="+ mysql.getString("password"));
+            Class.forName("org.mariadb.jdbc.Driver").newInstance();
+            String connection = "jdbc:mariadb://"+mysql.getString("ip")+"/"+mysql.getString("database")+"?user="+ mysql.getString("username")+"&password="+ mysql.getString("password");
+            getServer().getLogger().info(connection);
+            //conn = DriverManager.getConnection(connection );
+            String con2 = "jdbc:mariadb://"+mysql.getString("ip")+"/"+mysql.getString("database");
+            conn = DriverManager.getConnection(con2, "twitch_bot", "Twitch_bot");
         } catch (Exception ex) {
             getServer().getLogger().warning("Cant connect to sql server, defaulting to json backup may be out of date");
             try {
@@ -115,6 +112,7 @@ public final class Main extends JavaPlugin {
             }
             //ex.printStackTrace();
         }
+
         if(conn != null) {
             try {
                 Statement stmt = conn.createStatement();
@@ -133,9 +131,16 @@ public final class Main extends JavaPlugin {
             }
         }
 
-        credentialManager.registerIdentityProvider(new TwitchIdentityProvider(credentials.getString("bot_ID"), credentials.getString("bot_Secreat"), ""));
-
         getServer().getPluginManager().registerEvents(new MyListener(this), this);
+
+        twitchClient = TwitchClientBuilder.builder()
+                .withEnableChat(true)
+                .withEnablePubSub(true)
+                .withEnableHelix(true)
+                .withEnableTMI(true)
+                .withChatAccount(credential)
+                .withCredentialManager(credentialManager)
+                .build();
 
         try{
             File file = new File(getDataFolder(),"actions.json");
@@ -249,12 +254,32 @@ public final class Main extends JavaPlugin {
         looper.start();
 
         pointAccumulation = new Timer(5*1000*60, e -> {
-            List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
-            for(User key : users){
-                viewerPoints.put(key.getId(), 10);
+            if(twitchClient != null) {
+                List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
+                for (User key : users) {
+                    synchronized (viewerPoints) {
+                        Integer points = viewerPoints.get(key.getId());
+                        points = (points == null ? 0 : points);
+                        viewerPoints.put(key.getId(), points + 50);
+                        getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
+                    }
+                }
             }
         });
 
+        pointAccumulation.start();
+
+        timers = new Timer(1000, e -> {
+            for(int i = 0; i < timersDelay.length; i++){
+                if(timersDelay[i] > 0){
+                    timersDelay[i]--;
+                } else if (timersNotFinished[i]) {
+                    timersNotFinished[i] = false;
+                }
+            }
+        });
+
+        timers.start();
 
         boolean teamExist = false;
 
@@ -314,304 +339,9 @@ public final class Main extends JavaPlugin {
         }
     }
 
-    private void onRedemtion(RewardRedeemedEvent event) {
-        String id = event.getRedemption().getReward().getId();
-        long cost = event.getRedemption().getReward().getCost();
-        String userName = event.getRedemption().getUser().getDisplayName();
-
-
-        Player player = null;
-
-        try{
-            player = getServer().getOnlinePlayers().toArray(new Player[0])[0];
-        }catch (IndexOutOfBoundsException ignored){}
-
-        if (player == null) {
-            return;
-        }
-        if(chat == null){
-            return;
-        }
-
-        final Player p = player;
-
-        int pitch = (int) p.getLocation().getPitch();
-        Location pos = p.getLocation().clone();
-        if (pitch < 0) {
-            pitch = 180 + (-pitch);
-        }
-        if (pitch == 360) {
-            pitch = 0;
-        }
-        if (pitch >= -45 && pitch < 45) {
-            pos.add(0, 0, -1);
-        }
-        else if (pitch >= 45 && pitch < 135) {
-            pos.add(1, 0, 0);
-        }
-        else if (pitch >= 135 && pitch < 225) {
-            pos.add(0, 0, 1);
-        }
-        else if (pitch >= 225 && pitch < 360) {
-            pos.add(-1, 0, 0);
-        }
-
-        int odds = (int) (Math.random() * 100);
-
-        System.out.println(odds+"");
-        if(config.getBoolean("Debug")){
-            twitchClient.getChat().sendPrivateMessage("AlienFromDia", odds+"");
-        }
-
-        if (id.equalsIgnoreCase(redemtions.getString("hiss")) && !grace) {
-            if (odds <= config.getInt("ChargedCreeperOdds")) {
-                getServer().getScheduler().runTask(this, () -> {
-                    p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                        e.setSilent(true);
-                        e.setPowered(true);
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    });
-                });
-
-            } else if (odds <= config.getInt("CreeperOdds")) {
-
-                getServer().getScheduler().runTask(this, () -> {
-                    p.getWorld().spawn(pos, Creeper.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                        e.setSilent(true);
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    });
-                });
-            }
-            //p.sendMessage(event.getRedemption().getUser().getDisplayName()+" redeemed hiss!");
-        }
-        else if (id.equalsIgnoreCase(redemtions.getString("balloonPop")) && !grace) {
-            if (odds <= config.getInt("BalloonPopOdds")) {
-                getServer().getScheduler().runTask(this, () -> {
-                    for (int x = -3; x < 4; x++) {
-                        for (int y = -3; y < 4; y++) {
-                            for (int z = -3; z < 4; z++) {
-                                p.getWorld().setType(p.getLocation().getBlockX()+x, p.getLocation().getBlockY()+y, p.getLocation().getBlockZ()+z, Material.AIR);
-                            }
-                        }
-                    }
-                    int i = (int)(Math.random()*potionEffectTypes.size());
-                    p.addPotionEffect(potionEffectTypes.get(i).createEffect(40*20, 4));
-                    i = (int)(Math.random()*potionEffectTypes.size());
-                    p.addPotionEffect(potionEffectTypes.get(i).createEffect(40*20, 4));
-                });
-                p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
-            }
-        }
-        else if (id.equalsIgnoreCase(redemtions.getString("knock")) && !grace) {
-            if (odds <= config.getInt("KnockKnockBabyOdds")){
-                getServer().getScheduler().runTask(this, () -> {
-                    p.getWorld().setType(pos, Material.CRIMSON_DOOR);
-                    p.getWorld().spawn(pos, Zombie.class, e -> {
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                        e.setSilent(true);
-                        if (odds <= 30) {
-                            e.setBaby();
-                        }
-                    });
-                });
-            }
-        }
-        else if (id.equalsIgnoreCase(redemtions.getString("nut")) && !grace) {
-            if (odds <= config.getInt("NutOdds")) {
-                //List of monsters to spawn
-                int pilliger = ((int) (Math.random() * 2)) + 2;
-                int vindicators = ((int) (Math.random() * 2)) + 5;
-                int witch = ((int) (Math.random() * 2)) + 1;
-                int evoker = 2;
-                int RavagerVindicator = ((int) (Math.random() * 1)) + 1;
-                int RavagerEvoker = 1;
-
-                int total = pilliger + vindicators + witch + evoker + RavagerEvoker + RavagerVindicator;
-
-                Location location = p.getLocation();
-// redemtion nut, should spawn some monsters accoring to the list above
-                for (int i = 0; i < total; i++) {
-                    int x = (int) (Math.random() * ((location.getBlockX() + 30) - (location.getBlockX() - 30)) + (location.getBlockX() + 30));
-                    int z = (int) (Math.random() * ((location.getBlockZ() + 30) - (location.getBlockZ() - 30)) + (location.getBlockZ() + 30));
-                    int y = p.getWorld().getMaxHeight();
-
-                    while (p.getWorld().getBlockAt(x, y, z).getType().isAir() && y != p.getWorld().getMinHeight()) {
-                        y--;
-                    }
-                    if (y == p.getWorld().getMinHeight()) {
-                        y = p.getLocation().getBlockY();
-                        for (int x1 = x - 1; x1 < x + 1; x1++) {
-                            for (int z1 = z - 1; z1 < z + 1; z1++) {
-                                Block blockAt = p.getWorld().getBlockAt(x1, y - 1, z1);
-                                if (blockAt.getType().isAir()) {
-                                    blockAt.setType(Material.DIRT);
-                                }
-                            }
-                        }
-                    }
-
-                    int finalY = y;
-
-                    if (pilliger > 0) {
-                        getServer().getScheduler().runTask(this, () -> {
-                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Pillager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                                        e.setSilent(true);
-                                        e.setTarget(p);
-                                        e.customName(Component.text(userName));
-                                    });
-                            });
-                        pilliger--;
-                    }
-                    else if (vindicators > 0) {
-                        getServer().getScheduler().runTask(this, () -> {
-                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                                        e.setSilent(true);
-                                        e.setTarget(p);
-                                        e.customName(Component.text(userName));
-                                    });
-                                });
-                        vindicators--;
-                    }
-                    else if (witch > 0) {
-                        getServer().getScheduler().runTask(this, () -> {
-                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Witch.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                                        e.setSilent(true);
-                                        e.setTarget(p);
-                                        e.customName(Component.text(userName));
-                                    });
-                                });
-                        witch--;
-                    }
-                    else if (evoker > 0) {
-                        getServer().getScheduler().runTask(this, () -> {
-                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                                        e.setSilent(true);
-                                        e.setTarget(p);
-                                        e.customName(Component.text(userName));
-                                    });
-                                });
-                        evoker--;
-                    }
-                    else if (RavagerEvoker > 0) {
-                        getServer().getScheduler().runTask(this, () -> {
-                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                                        e.setSilent(true);
-                                        e.setTarget(p);
-                                        e.customName(Component.text(userName));
-                                        e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Evoker.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
-                                            e.customName(Component.text(userName));
-                                            e.setTarget(p);
-                                            e.setSilent(true);
-                                        }));
-                                    });
-                                });
-                        RavagerEvoker--;
-                    }
-                    else if(RavagerVindicator > 0){
-                        getServer().getScheduler().runTask(this, () -> {
-                                    p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Ravager.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                                        e.setSilent(true);
-                                        e.setTarget(p);
-                                        e.customName(Component.text(userName));
-                                        e.addPassenger(p.getWorld().spawn(new Location(p.getWorld(), x, finalY, z), Vindicator.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e1 -> {
-                                            e.customName(Component.text(userName));
-                                            e.setTarget(p);
-                                            e.setSilent(true);
-                                        }));
-                                    });
-                                });
-                        RavagerVindicator--;
-                    }
-                }
-            }
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("boo")) && !grace){
-            if(odds <= config.getInt("BooOdds")) {
-                getServer().getScheduler().runTask(this, () -> {
-                    p.addPotionEffect(PotionEffectType.BLINDNESS.createEffect(20 * 20, 3));
-                });
-            }
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("Mission Failed")) && !grace){
-            if(odds <= config.getInt("MissionFailedOdds60s")) time = 60;
-            else if(odds <= config.getInt("MissionFailedOdds30s")) time = 30;
-            disableShit = true;
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("Drop it")) && !grace){
-            if(odds <= config.getInt("DropItOdds")) {
-                getServer().getScheduler().runTask(this, () -> {
-                    for (int y = p.getLocation().getBlockY() + 4; y >= -60; y--) {
-                        for (int x = -2; x <= 2; x++) {
-                            for (int z = -2; z <= 2; z++) {
-                                p.getWorld().setType(p.getLocation().getBlockX()+x, y, p.getLocation().getBlockZ()+z, Material.AIR);
-                            }
-                        }
-                    }
-                });
-            }
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("Name Generator")) && !grace){
-            if(odds <= config.getInt("NameGenOdds")) {
-                getServer().getScheduler().runTask(this, () -> {
-                    p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                        e.customName(Component.text(event.getRedemption().getUserInput()));
-                    });
-                    p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                        e.customName(Component.text(event.getRedemption().getUserInput()));
-                    });
-                });
-            }
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("Ara Ara")) && !grace){
-            if(odds <= config.getInt("AraAraOdds")){
-                getServer().getScheduler().runTask(this, () -> {
-                    p.getWorld().spawn(pos, Evoker.class, e -> {
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    });
-                    p.getWorld().spawn(pos, Evoker.class, e -> {
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    });
-                    p.getWorld().spawn(pos, Vindicator.class, e -> {
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    });
-                    p.getWorld().spawn(pos, Vindicator.class, e -> {
-                        e.customName(Component.text(event.getRedemption().getUser().getDisplayName()));
-                    });
-                    p.addPotionEffect(PotionEffectType.SLOW.createEffect(60*20, 2));
-                });
-            }
-        }
-        else if(id.equalsIgnoreCase(redemtions.getString("Hydrate")) && !grace){
-            if(odds <= config.getInt("HydrateOdds")) {
-                getServer().getScheduler().runTask(this, () -> {
-                    for (int x = -50; x <= 50; x++) {
-                        for (int y = -50; y <= 50; y++) {
-                            for (int z = -50; z <= 50; z++) {
-                                Block block = p.getWorld().getBlockAt(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z);
-                                if (block.getType().isAir()) {
-                                    p.getWorld().setType(p.getLocation().getBlockX() + x, p.getLocation().getBlockY() + y, p.getLocation().getBlockZ() + z, Material.WATER);
-                                }else if(!(block instanceof Door) && block.getBlockData() instanceof Waterlogged w){
-                                    w.setWaterlogged(true);
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        if (cost >= 100) {
-            getServer().getScheduler().runTask(this, () -> {
-                p.playSound(p, Sound.ENTITY_SKELETON_AMBIENT, 10, 10);
-                if (odds <= 70) {
-                    p.getWorld().spawn(pos, Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
-                        e.setSilent(true);
-                        e.setTarget(p);
-                        e.customName(Component.text(userName));
-                    });
-                }
-            });
-        }
+    private void onRedemption(RewardRedeemedEvent event) {
+        Redemption r = new Redemption(event, this);
+        r.start();
     }
 
     private void onChatMessage(ChannelMessageEvent event) {
@@ -634,30 +364,31 @@ public final class Main extends JavaPlugin {
             }
         }catch (Exception ignored){}
 
-        if(command.equalsIgnoreCase("-add")){
-            viewerPoints.put(event.getUser().getId(), 10);
+        EventUser user = event.getUser();
+        if(command.equalsIgnoreCase("-add") && false){
+            viewerPoints.put(user.getId(), 10);
         }else
 
         if (command.equalsIgnoreCase("-test")) {
             //event.reply(twitchClient.getChat(), "yes i work!");
-            twitchClient.getChat().sendMessage(chat, "yes i work @" + event.getUser().getName());
+            twitchClient.getChat().sendMessage(chat, "yes i work @" + user.getName());
         }
         else if(command.equalsIgnoreCase("-source")){
             twitchClient.getChat().sendMessage(chat, "I'm a bot made by @AlienFromDia and my source code is located at https://github.com/zaze06/Twitch");
         }
         else if(command.equalsIgnoreCase("-points")){
             if(args.length > 0){
-                User user = null;
+                User user1 = null;
                 String uname = args[0];
                 try{
                     uname = args[0].split("@")[1];
                 }catch (Exception ignored){}
                 try{
 
-                    user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers().get(0);
+                    user1 = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers().get(0);
                 }catch (Exception e){getServer().getLogger().warning(e.getCause().toString());}
-                if(user != null) {
-                    twitchClient.getChat().sendMessage(chat, user.getDisplayName() + " currently have " + viewerPoints.get(user.getId()) + " Soul of the lost");
+                if(user1 != null) {
+                    twitchClient.getChat().sendMessage(chat, user1.getDisplayName() + " currently have " + viewerPoints.get(user1.getId()) + " Soul of the lost");
                 }else{
                     /*List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers();
                     StringBuilder data = new StringBuilder();
@@ -665,55 +396,193 @@ public final class Main extends JavaPlugin {
                         data.append(user1.getDisplayName());
                     }
                     getServer().getLogger().info(data.toString());*/
-                    twitchClient.getChat().sendMessage(chat, "Sorry @"+event.getUser().getName()+" i cant find "+uname+" :(");
+                    twitchClient.getChat().sendMessage(chat, "Sorry @"+ user.getName()+" i cant find "+uname+" :(");
                 }
             }else {
-                Integer poits = viewerPoints.get(event.getUser().getId());
-                twitchClient.getChat().sendMessage(chat, "@" + event.getUser().getName() + " you currently have " + (poits!=null?poits:0) + " Soul of the lost");
+                Integer points = viewerPoints.get(user.getId());
+                twitchClient.getChat().sendMessage(chat, "@" + user.getName() + " you currently have " + (points!=null?points:0) + " Soul of the lost");
             }
         }
         else if(command.equalsIgnoreCase("-products")){
-            twitchClient.getChat().sendMessage(chat, "@"+event.getUser().getName()+" you have the production list hear https://docs.google.com/spreadsheets/d/1irumyoV5YYpgm9GQeObTmKXLtBU5vXMnBXgybnwufeI/ you may need to change to the products page(bottom of the screen)");
+            twitchClient.getChat().sendMessage(chat, "@"+ user.getName()+" you have the production list hear https://docs.google.com/spreadsheets/d/1irumyoV5YYpgm9GQeObTmKXLtBU5vXMnBXgybnwufeI/ you may need to change to the products page(bottom of the screen)");
         }
         else if(command.startsWith("-buy")){
             if(args.length > 0){
-                Player player = null;
+                Player[] players = null;
 
                 try{
-                    player = getServer().getOnlinePlayers().toArray(new Player[0])[0];
-                }catch (IndexOutOfBoundsException ignored){}
+                    players = getServer().getOnlinePlayers().toArray(new Player[0]);
+                }catch (NullPointerException ignored){}
 
-                if (player == null) {
+                if (players == null) {
+                    return;
+                }
+                if(chat == null){
                     return;
                 }
 
-                Integer points = viewerPoints.get(event.getUser().getId());
+                Integer points = viewerPoints.get(user.getId());
+                boolean removedPoints = false;
 
-                if(args[0].equalsIgnoreCase("0") || args[0].equalsIgnoreCase("heal")){
-                    if(points >= 100){
-                        player.setHealth(20);
-                        points-=100;
+                for(Player player : players) {
+
+                    String redemption = args[0];
+                    if (redemption.equalsIgnoreCase("0") || redemption.equalsIgnoreCase("heal")) {
+                        if (points >= 100 && !timersNotFinished[0]) {
+                            getServer().getScheduler().runTask(this, () -> player.setHealth(20));
+                            if( !removedPoints ) {
+                                points -= 100;
+                                removedPoints = true;
+                            }
+                            timersDelay[0] = 3*60;
+                        } else if(timersNotFinished[0]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[0]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
                     }
-                }else if(args[0].equalsIgnoreCase("1") || args[0].equalsIgnoreCase("feed")){
-                    if(points >= 100){
-                        player.setFoodLevel(20);
-                        points-=100;
+                    else if (redemption.equalsIgnoreCase("1") || redemption.equalsIgnoreCase("feed")) {
+                        if (points >= 100 && !timersNotFinished[1]) {
+                            getServer().getScheduler().runTask(this, () -> player.setFoodLevel(20));
+                            if( !removedPoints ) {
+                                points -= 100;
+                                removedPoints = true;
+                            }
+                            timersDelay[1] = 3*60;
+                        } else if(timersNotFinished[1]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[1]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
                     }
-                }else if(args[0].equalsIgnoreCase("2") || args[0].equalsIgnoreCase("grace")){
-                    if(points >= 500){
-                        grace = true;
-                        graceTime = 60;
-                        graceTimeOrig = graceTime;
-                        points-=500;
+                    else if (redemption.equalsIgnoreCase("2") || redemption.equalsIgnoreCase("grace")) {
+                        if (points >= 500 && !timersNotFinished[2]) {
+                            grace = true;
+                            graceTime = 60;
+                            graceTimeOrig = graceTime;
+                            points -= 500;
+                            timersDelay[2] = 2*60;
+                            break;
+                        } else if(timersNotFinished[2]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[2]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
+                    }
+                    else if (redemption.equalsIgnoreCase("3") || redemption.equalsIgnoreCase("teleport") && !grace) {
+                        if (points >= 500 && !timersNotFinished[3]) {
+                            Location loc = player.getLocation();
+                            int x = (int) (Math.random() * ((loc.getBlockX() + 1000) - (loc.getBlockX() - 1000)) + (loc.getBlockX() - 1000)), y = (int) (Math.random() * ((loc.getBlockY() + 1000) - (loc.getBlockY() - 1000)) + (loc.getBlockY() - 1000)), z = (int) (Math.random() * ((loc.getBlockZ() + 1000) - (loc.getBlockZ() - 1000)) + (loc.getBlockZ() - 1000));
+                            for (int i = 0; i < 200; i++) {
+                                if (player.getWorld().getBlockAt(x, y, z).getType().isAir() && player.getWorld().getBlockAt(x, y + 1, z).getType().isAir() && y > -60 && y < 360)
+                                    break;
+                                x = (int) (Math.random() * ((loc.getBlockX() + 1000) - (loc.getBlockX() - 1000)) + (loc.getBlockX() - 1000));
+                                y = (int) (Math.random() * ((loc.getBlockY() + 1000) - (loc.getBlockY() - 1000)) + (loc.getBlockY() - 1000));
+                                z = (int) (Math.random() * ((loc.getBlockZ() + 1000) - (loc.getBlockZ() - 1000)) + (loc.getBlockZ() - 1000));
+                            }
+                            int finalX = x;
+                            int finalY = y;
+                            int finalZ = z;
+                            getServer().getScheduler().runTask(this, () -> {
+                                if (player.getWorld().getBlockAt(finalX, finalY, finalZ).getType().isAir() && player.getWorld().getBlockAt(finalX, finalY + 1, finalZ).getType().isAir()) {
+                                    player.teleport(new Location(player.getWorld(), finalX, finalY, finalZ));
+                                }
+                            });
+                            if( !removedPoints ) {
+                                points -= 500;
+                                removedPoints = true;
+                            }
+                            timersDelay[3] = 4*60;
+                        } else if(timersNotFinished[3]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[3]+" sec left");
+                        } else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
+                    }
+                    else if (redemption.equalsIgnoreCase("4") || redemption.equalsIgnoreCase("hydrate")) {
+                        if(points >= 300 && !timersNotFinished[4]){
+                            twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("Hydrate"))));
+                            if( !removedPoints ) {
+                                points -= 300;
+                                removedPoints = true;
+                            }
+                            break;
+                        } else if(timersNotFinished[4]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[4]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
+                    }
+                    else if (redemption.equalsIgnoreCase("5") || redemption.equalsIgnoreCase("hiss")){
+                        if(points >= 50 && !timersNotFinished[5]){
+                            twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("hiss"))));
+                            if( !removedPoints ) {
+                                points -= 50;
+                                removedPoints = true;
+                            }
+                            break;
+                        } else if(timersNotFinished[5]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[5]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
+                    }
+                    else if (redemption.equalsIgnoreCase("6") || redemption.equalsIgnoreCase("nut")){
+                        if(points >= 50 && !timersNotFinished[6]){
+                            twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("nut"))));
+                            if( !removedPoints ) {
+                                points -= 50;
+                                removedPoints = true;
+                            }
+                            break;
+                        } else if(timersNotFinished[6]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[6]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
+                    }
+                    else if (redemption.equalsIgnoreCase("7") || redemption.equalsIgnoreCase("drop-it")){
+                        if(points >= 100 && !timersNotFinished[7]){
+                            twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("Drop it"))));
+                            if( !removedPoints ) {
+                                points -= 100;
+                                removedPoints = true;
+                            }
+                            break;
+                        } else if(timersNotFinished[7]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[7]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
+                    }
+                    else if (redemption.equalsIgnoreCase("8") || redemption.equalsIgnoreCase("mission-failed")){
+                        if(points >= 300 && !timersNotFinished[8]){
+                            twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("Mission Failed"))));
+                            if( !removedPoints ) {
+                                points -= 300;
+                                removedPoints = true;
+                            }
+                            break;
+                        } else if(timersNotFinished[8]) {
+                            twitchClient.getChat().sendMessage(chat, "Sorry "+ user.getName()+" it's "+ timersDelay[8]+" sec left");
+                        }  else {
+                            twitchClient.getChat().sendMessage(chat, user.getName() + " you don't have enough soul of the lost");
+                        }
                     }
                 }
 
-                viewerPoints.put(event.getUser().getId(), points);
+                for(int i = 0; i < timersDelay.length; i++){
+                    if(!timersNotFinished[i] && timersDelay[i] > 0){
+                        timersNotFinished[i] = true;
+                    }
+                }
+
+                viewerPoints.put(user.getId(), points);
             }
         }
         else {
-            if (connectChatTwitch && !event.getUser().getName().equalsIgnoreCase("StreamElements")) {
-                getServer().sendMessage(Component.text("<" + event.getUser().getName() + "> " + event.getMessage()));
+            if (connectChatTwitch && !user.getName().equalsIgnoreCase("StreamElements")) {
+                getServer().sendMessage(Component.text("<" + user.getName() + "> " + event.getMessage()));
             }
         }
     }
@@ -745,28 +614,27 @@ public final class Main extends JavaPlugin {
             if (args.length > 0) {
                 if(sender instanceof Player p) {
                     if (chat == null) {
-                        twitchClient = TwitchClientBuilder.builder()
-                                .withEnableChat(true)
-                                .withEnablePubSub(true)
-                                .withEnableHelix(true)
-                                .withEnableTMI(true)
-                                .withChatAccount(credential)
-                                .withCredentialManager(credentialManager)
-                                .build();
                         chat = args[0];
-                        twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, credentials.getString("channel_ID"));
+                        User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Arrays.asList(chat)).execute().getUsers().get(0);
+                        if(user == null){
+                            sender.sendMessage("<a_twitch_bot_> I'm sorry but "+chat+" is not a valid twitch user name please make sure you spelled correctly.");
+                            chat = null;
+                            return  true;
+                        }
+                        channelId = user.getId();
+                        twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, user.getId());
                         twitchClient.getChat().joinChannel(chat);
-                        twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well");
+                        twitchClient.getChat().sendMessage(chat, "I was told to come hear by " + sender.getName() + " treat me well.");
                         twitchClient.getEventManager().onEvent(ChannelMessageEvent.class, this::onChatMessage);
-                        twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemtion);
-                        sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot connected to " + chat + " stream"));
+                        twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemption);
+                        sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot connected to " + chat + " stream."));
                         isConnected = true;
                         host = p;
                     } else {
-                        sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first");
+                        sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first.");
                     }
                 }else{
-                    sender.sendMessage("<a_twitch_bot_> I'm Sorry but i require that this command should be run by a player");
+                    sender.sendMessage("<a_twitch_bot_> I'm Sorry but i require that this command should be run by a player.");
                 }
                 return true;
             }
@@ -799,53 +667,40 @@ public final class Main extends JavaPlugin {
                 }
             }
 
-            getServer().sendMessage(Component.text("<a_twitch_bot_> missing parameters usage /chat <text to send>"));
+            getServer().sendMessage(Component.text("<a_twitch_bot_> missing parameters usage /send <text to send>"));
 
             return true;
         }
         else if (label.equalsIgnoreCase("chat")) {
             if(args.length > 0){
-                if(args[0].equalsIgnoreCase("twitch")){
-                    connectChatTwitch = !connectChatTwitch;
-                    if(connectChatTwitch) {
-                        getServer().sendMessage(Component.text("<a_twitch_bot_> the twitch chat is now connected to minecraft chat"));
-                        twitchClient.getChat().sendMessage(chat, "twitch chat is now connected to minecraft chat");
-                    }else{
-                        getServer().sendMessage(Component.text("<a_twitch_bot_> the twitch chat is now disconnected to minecraft chat"));
-                        twitchClient.getChat().sendMessage(chat, "twitch chat is now disconnected to minecraft chat");
-                    }
-                }
-                else if(args[0].equalsIgnoreCase("minecraft")){
-                    connectChatMinecraft = !connectChatMinecraft;
-                    if(connectChatMinecraft) {
-                        getServer().sendMessage(Component.text("<a_twitch_bot_> the minecraft chat is now connected to twitch chat"));
-                        twitchClient.getChat().sendMessage(chat, "minecraft chat is now connected to twitch chat");
-                    }else{
-                        getServer().sendMessage(Component.text("<a_twitch_bot_> the minecraft chat is now disconnected to minetwitchcraft chat"));
-                        twitchClient.getChat().sendMessage(chat, "minecraft chat is now disconnected to twitch chat");
-                    }
-                }
-                if(args.length > 1){
-                    if(args[1].equalsIgnoreCase("all")){
-                        minecraftChat = Level.valueOf(args[1].toUpperCase());
-                    }else if(args[1].equalsIgnoreCase("info")){
-                        minecraftChat = Level.valueOf(args[1].toUpperCase());
-                    }else if(args[1].equalsIgnoreCase("chat")){
-                        minecraftChat = Level.valueOf(args[1].toUpperCase());
-                    }
-                }
-            }else if(label.equalsIgnoreCase("grace")) {
-                if(isConnected){
-                    if(args.length > 0){
-                        try {
-                            graceTime = Integer.parseInt(args[0])*60;
-                            graceTimeOrig = graceTime;
-                            grace = true;
-                        }catch (Exception e){
-                            sender.sendMessage("<a_twitch_bot_> first argument was not an int pleas provide <time in min> for the first argument");
+                if(isConnected) {
+                    if (args[0].equalsIgnoreCase("twitch")) {
+                        connectChatTwitch = !connectChatTwitch;
+                        if (connectChatTwitch) {
+                            getServer().sendMessage(Component.text("<a_twitch_bot_> the twitch chat is now connected to minecraft chat"));
+                            twitchClient.getChat().sendMessage(chat, "twitch chat is now connected to minecraft chat");
+                        } else {
+                            getServer().sendMessage(Component.text("<a_twitch_bot_> the twitch chat is now disconnected to minecraft chat"));
+                            twitchClient.getChat().sendMessage(chat, "twitch chat is now disconnected to minecraft chat");
                         }
-                    }else{
-                        sender.sendMessage("<a_twitch_bot_> first argument was not an found pleas provide <time in min> for the first argument");
+                    } else if (args[0].equalsIgnoreCase("minecraft")) {
+                        connectChatMinecraft = !connectChatMinecraft;
+                        if (connectChatMinecraft) {
+                            getServer().sendMessage(Component.text("<a_twitch_bot_> the minecraft chat is now connected to twitch chat"));
+                            twitchClient.getChat().sendMessage(chat, "minecraft chat is now connected to twitch chat");
+                        } else {
+                            getServer().sendMessage(Component.text("<a_twitch_bot_> the minecraft chat is now disconnected to minetwitchcraft chat"));
+                            twitchClient.getChat().sendMessage(chat, "minecraft chat is now disconnected to twitch chat");
+                        }
+                        if (args.length > 1) {
+                            if (args[1].equalsIgnoreCase("all")) {
+                                minecraftChat = Level.valueOf(args[1].toUpperCase());
+                            } else if (args[1].equalsIgnoreCase("info")) {
+                                minecraftChat = Level.valueOf(args[1].toUpperCase());
+                            } else if (args[1].equalsIgnoreCase("chat")) {
+                                minecraftChat = Level.valueOf(args[1].toUpperCase());
+                            }
+                        }
                     }
                 }
             }
@@ -854,6 +709,41 @@ public final class Main extends JavaPlugin {
             }
 
             return true;
+        }else if(label.equalsIgnoreCase("grace")) {
+            if(isConnected){
+                if(args.length > 0){
+                    try {
+                        graceTime = Integer.parseInt(args[0])*60;
+                        graceTimeOrig = graceTime;
+                        grace = true;
+                    }catch (Exception e){
+                        sender.sendMessage("<a_twitch_bot_> first argument was not an int pleas provide <time in min> for the first argument");
+                    }
+                }else{
+                    sender.sendMessage("<a_twitch_bot_> first argument was not an found pleas provide <time in min> for the first argument");
+                }
+            }
+            return true;
+        }else if(label.equalsIgnoreCase("points")){
+            TreeMap<String, Integer> viewerPointsSorted = new TreeMap<>(new ValueComparator(viewerPoints));
+            viewerPointsSorted.putAll(viewerPoints);
+            ArrayList<Pair<String, Integer>> topViewerPoints = new ArrayList<>();
+            int i = 0;
+            for(String key : viewerPointsSorted.keySet()){
+                if(i > 9) break;
+                User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), Arrays.asList(key), null).execute().getUsers().get(0);
+                if(user == null) break;
+                topViewerPoints.add(i, new Pair<>(user.getDisplayName(), viewerPoints.get(key)));
+            }
+            StringBuilder str = new StringBuilder();
+            if(topViewerPoints.size() > 0) {
+                str.append("Top ").append(topViewerPoints.size()).append(" soul of the lost user").append((topViewerPoints.size()>1?"s":""));
+                for(i = topViewerPoints.size()-1; i >= 0; i--){
+                    Pair<String, Integer> user = topViewerPoints.get(i);
+                    str.append("\n").append(user.getKey()).append(" have ").append((user.getValue()==null?"null":user.getValue())).append(" Soul").append(((user.getValue()==null?0:user.getValue())>1?"s":"")).append(" of the lost");
+                }
+            }
+            sender.sendMessage("<a_twitch_bot_> "+str.toString());
         }
         return false;
     }
