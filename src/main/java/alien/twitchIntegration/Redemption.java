@@ -293,9 +293,67 @@ public class Redemption extends Thread {
             else if (id.equalsIgnoreCase(plugin.redemptions.getString("Hydrate")) && !plugin.grace) {
                 if (odds <= plugin.config.getInt("HydrateOdds")) {
 
-                    for(int i = 0; i < 12; i++){
-                        WaterCube waterCube = new WaterCube(plugin, p, i * 10, pPosX, pPosY, pPosZ);
-                        waterCube.start();
+                    Location loc = p.getLocation();
+                    for(int x = loc.getBlockX() - 50; x < loc.getBlockX() + 50; x++) {
+                        for (int y = loc.getBlockY() - 50; y < loc.getBlockY() + 50; y++) {
+                            int z = loc.getBlockZ();
+                            int finalY = y;
+                            int finalX = x;
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                Block block = p.getWorld().getBlockAt(pPosX + finalX, pPosY + finalY, pPosZ + z);
+                                if (block.getType().isAir()) {
+                                    p.getWorld().setType(pPosX + finalX, pPosY + finalY, pPosZ + z, Material.WATER);
+                                } else if (!(block instanceof Door) && block.getBlockData() instanceof Waterlogged w) {
+                                    w.setWaterlogged(true);
+                                }
+                            });
+                        }
+                    }
+                    for(int x = pos.getBlockX() - 50; x < pos.getBlockX() + 50; x++) {
+                        for (int y = pos.getBlockY() - 50; y < pos.getBlockY() + 50; y++) {
+                            int z = loc.getBlockZ();
+                            int finalX = x;
+                            int finalY = y;
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                Block block = p.getWorld().getBlockAt(pPosX + finalX, pPosY + finalY, pPosZ + z);
+                                if (block.getType().isAir()) {
+                                    p.getWorld().setType(pPosX + finalX, pPosY + finalY, pPosZ + z, Material.WATER);
+                                } else if (!(block instanceof Door) && block.getBlockData() instanceof Waterlogged w) {
+                                    w.setWaterlogged(true);
+                                }
+                            });
+                        }
+                    }
+
+                    for(int z = pos.getBlockZ() - 50; z < pos.getBlockZ() + 50; z++) {
+                        for (int y = pos.getBlockY() - 50; y < pos.getBlockY() + 50; y++) {
+                            int x = loc.getBlockX();
+                            int finalY = y;
+                            int finalZ = z;
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                Block block = p.getWorld().getBlockAt(pPosX + x, pPosY + finalY, pPosZ + finalZ);
+                                if (block.getType().isAir()) {
+                                    p.getWorld().setType(pPosX + x, pPosY + finalY, pPosZ + finalZ, Material.WATER);
+                                } else if (!(block instanceof Door) && block.getBlockData() instanceof Waterlogged w) {
+                                    w.setWaterlogged(true);
+                                }
+                            });
+                        }
+                    }
+                    for(int z = pos.getBlockZ() - 50; z < pos.getBlockZ() + 50; z++) {
+                        for (int y = pos.getBlockY() - 50; y < pos.getBlockY() + 50; y++) {
+                            int x = loc.getBlockZ();
+                            int finalY = y;
+                            int finalZ = z;
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                Block block = p.getWorld().getBlockAt(pPosX + x, pPosY + finalY, pPosZ + finalZ);
+                                if (block.getType().isAir()) {
+                                    p.getWorld().setType(pPosX + x, pPosY + finalY, pPosZ + finalZ, Material.WATER);
+                                } else if (!(block instanceof Door) && block.getBlockData() instanceof Waterlogged w) {
+                                    w.setWaterlogged(true);
+                                }
+                            });
+                        }
                     }
 
                 }
