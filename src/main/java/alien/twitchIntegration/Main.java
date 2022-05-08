@@ -15,7 +15,6 @@ import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -27,7 +26,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.swing.Timer;
@@ -38,13 +36,13 @@ import java.util.*;
 
 public final class Main extends JavaPlugin {
 
-    private final JSONObject credentials = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/credentials.json")));
-    public final JSONObject redemptions = new JSONObject(Loader.leadFile(getClass().getResourceAsStream("/redemtions.json")));
+    private final JSONObject credentials = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/credentials.json")));
+    public final JSONObject redemptions = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/redemtions.json")));
     public TwitchClient twitchClient;
     public final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
     public final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
     private final JSONObject mysql = credentials.getJSONObject("mysql");
-    private final ArrayList<Action> reademEventAction = new ArrayList<>();
+    public final ArrayList<String> readmeEventAction = new ArrayList<>();
     public String chat = null;
     public boolean isConnected = false;
     public boolean connectChatTwitch = false;
@@ -96,7 +94,7 @@ public final class Main extends JavaPlugin {
         } catch (Exception ex) {
             getServer().getLogger().warning("Cant connect to sql server, defaulting to json backup may be out of date");
             try {
-                JSONObject points = new JSONObject(Loader.leadFile(new FileInputStream(System.getProperty("user.dir")+"/data/backup.json")));
+                JSONObject points = new JSONObject(Loader.loadFile(new FileInputStream(System.getProperty("user.dir")+"/data/backup.json")));
                 for(String key : points.keySet()){
                     viewerPoints.put(key, points.getInt(key));
                 }
@@ -111,6 +109,16 @@ public final class Main extends JavaPlugin {
                 }
             }
             //ex.printStackTrace();
+        }
+
+        try{
+            File file = new File(System.getProperty("user.dir")+"/data/redemtions");
+            if(!file.exists()){
+                file.mkdirs();
+            }
+            readmeEventAction.addAll(Arrays.asList(file.list()));
+        }catch (NullPointerException ignored){
+
         }
 
         if(conn != null) {
@@ -141,30 +149,6 @@ public final class Main extends JavaPlugin {
                 .withChatAccount(credential)
                 .withCredentialManager(credentialManager)
                 .build();
-
-        try{
-            File file = new File(getDataFolder(),"actions.json");
-
-            BufferedReader in = new BufferedReader(new FileReader(file));
-            StringBuilder data = new StringBuilder();
-            String tmp = "";
-            while ((tmp = in.readLine()) != null){
-                data.append(tmp);
-            }
-
-            JSONObject redeemData = new JSONObject(data);
-
-            for(String key : redeemData.keySet()){
-                JSONObject redemtion = redeemData.getJSONObject(key);
-
-            }
-
-        }catch (JSONException e) {
-            getServer().sendMessage(Component.text("You don't have a valid redemption action file", TextColor.color(255,0,0)));
-        }
-        catch(Exception ignored){
-
-        }
 
         config.addDefault("ChargedCreeperOdds", 5);
         config.addDefault("CreeperOdds", 40);
@@ -734,6 +718,7 @@ public final class Main extends JavaPlugin {
                 User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), Arrays.asList(key), null).execute().getUsers().get(0);
                 if(user == null) break;
                 topViewerPoints.add(i, new Pair<>(user.getDisplayName(), viewerPoints.get(key)));
+                i++;
             }
             StringBuilder str = new StringBuilder();
             if(topViewerPoints.size() > 0) {

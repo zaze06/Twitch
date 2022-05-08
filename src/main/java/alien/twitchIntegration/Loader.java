@@ -1,13 +1,9 @@
 package alien.twitchIntegration;
 
-import com.github.twitch4j.helix.domain.User;
-
 import java.io.*;
-import java.util.Collections;
-import java.util.List;
 
 public class Loader {
-    public static String leadFile(InputStream s) {
+    public static String loadFile(InputStream s) {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(s));
             StringBuilder data = new StringBuilder();

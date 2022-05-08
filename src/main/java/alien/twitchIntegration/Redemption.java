@@ -12,6 +12,15 @@ import org.bukkit.block.data.type.Door;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.potion.PotionEffectType;
+import org.python.core.*;
+import org.python.util.PythonInterpreter;
+
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
 public class Redemption extends Thread {
 
@@ -75,6 +84,44 @@ public class Redemption extends Thread {
             System.out.println(odds + "");
             if (plugin.config.getBoolean("Debug")) {
                 plugin.twitchClient.getChat().sendPrivateMessage("AlienFromDia", odds + "");
+            }
+
+            for(String redemtion : plugin.readmeEventAction) {
+                try {
+                    PythonInterpreter pi =  new PythonInterpreter();
+                    pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/" + redemtion)));
+                    String actionId = (String) pi.get("id").__tojava__(String.class);
+                    if(true || actionId.equalsIgnoreCase(id)){
+                        pi.get("run").__call__(new PyObject[]{new PyLong(cost), new PyString(userName), Py.java2py(user), Py.java2py(p), Py.java2py(pos)});
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                /*
+                try {
+                    ScriptEngine ee = new ScriptEngineManager().getEngineByName("rhino");
+                    ee.eval(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/" + redemtion)));
+                    Object var = ee.get("id");
+                    if(var instanceof String){
+                        if(((String)var).equalsIgnoreCase(id)){
+                            Invocable file = (Invocable) ee;
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                try {
+                                    file.invokeFunction("run", cost, userName, user, p, pos);
+                                } catch (ScriptException e) {
+                                    throw new RuntimeException(e);
+                                } catch (NoSuchMethodException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        }
+                    }
+                } catch (ScriptException e) {
+                    throw new RuntimeException(e);
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+                */
             }
 
             if (id.equalsIgnoreCase(plugin.redemptions.getString("hiss")) && !plugin.grace) {
