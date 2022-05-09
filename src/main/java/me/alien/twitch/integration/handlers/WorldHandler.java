@@ -1,7 +1,7 @@
 package me.alien.twitch.integration.handlers;
 
 import me.alien.twitch.integration.Main;
-import me.alien.twitch.integration.util.Vector2I;
+import me.alien.twitch.integration.util.Vector3I;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -9,6 +9,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -20,7 +21,7 @@ public class WorldHandler {
         this.plugin = plugin;
     }
 
-    public boolean setBlock(Vector2I pos, String block){
+    public boolean setBlock(Vector3I pos, String block){
         Material mat;
         try{
             mat = Material.valueOf(block);
@@ -32,7 +33,7 @@ public class WorldHandler {
         });
         return true;
     }
-    public boolean setBlock(Vector2I pos, String block, String... replace){
+    public boolean setBlock(Vector3I pos, String block, String... replace){
         ArrayList<Material> replaceList = new ArrayList<>();
 
         for(String string : replace){
@@ -56,7 +57,23 @@ public class WorldHandler {
         return true;
     }
 
-    public Entity spawnEntity(Vector2I pos, String name){
+    public String getBlock(Vector3I pos){
+        AtomicReference<String> type = new AtomicReference<>("");
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            type.set(world.getType(pos.getX(), pos.getY(), pos.getZ()).name());
+        });
+        return type.get();
+    }
+
+    public boolean isAirAt(Vector3I pos){
+        AtomicBoolean isAir = new AtomicBoolean(false);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            isAir.set(world.getType(pos.getX(), pos.getY(), pos.getZ()).isAir());
+        });
+        return isAir.get();
+    }
+
+    public Entity spawnEntity(Vector3I pos, String name){
         AtomicReference<Entity> e = new AtomicReference<>();
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Location loc = new Location(world, pos.getX(), pos.getY(), pos.getZ());
@@ -90,6 +107,12 @@ public class WorldHandler {
     }
 
     public int getMinHeight(){
-        return world.getMaxHeight();
+        AtomicInteger min = new AtomicInteger();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            min.set(world.getMinHeight());
+        });
+        return min.get();
     }
+
+
 }

@@ -4,7 +4,7 @@ redemptionId = "b7615235-3510-4ba9-a9e7-20ad3725f073"
 env = "PLUGIN"
 
 
-def run(cost, user_name, user, handler, pos1, odds):
+def run(cost, user_name, user, handler, pos1, odds, redemption):
     player = handler.getPlayer()
     world = player.getWorld()
     pos = player.getPos()

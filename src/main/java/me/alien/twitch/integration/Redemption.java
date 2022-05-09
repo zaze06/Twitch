@@ -2,10 +2,9 @@ package me.alien.twitch.integration;
 
 import me.alien.twitch.integration.handlers.Envierment;
 import me.alien.twitch.integration.handlers.Handler;
-import me.alien.twitch.integration.handlers.PlayerHandler;
 import com.github.twitch4j.pubsub.domain.ChannelPointsUser;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
-import me.alien.twitch.integration.util.Vector2I;
+import me.alien.twitch.integration.util.Vector3I;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -21,6 +20,7 @@ import org.python.core.*;
 import org.python.util.PythonInterpreter;
 
 import java.io.FileInputStream;
+import java.io.FileReader;
 
 public class Redemption extends Thread {
 
@@ -91,17 +91,46 @@ public class Redemption extends Thread {
             for(String redemtion : plugin.readmeEventAction) {
                 try {
                     PythonInterpreter pi =  new PythonInterpreter();
+                    //pi.compile(new FileReader(System.getProperty("user.dir") + "/data/redemtions/shared.py"));
+                    //pi.set("shared", pi.eval(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n")));
+                    //pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
+                    //pi.eval(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
                     pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/" + redemtion), "\n"));
-                    String actionId = (String) pi.get("redemptionId").__tojava__(String.class);
+                    String actionId = "";
+                    try{
+                        PyObject obj = pi.get("redemptionId");
+                        if(obj == null){
+                            throw new NullPointerException();
+                        }
+                        String str = (String) obj.__tojava__(String.class);
+                        if(str == null){
+                            throw new NullPointerException();
+                        }
+                        actionId = str;
+                    }catch (Exception ignored){}
+                    String name = "";
+                    try{
+                        PyObject obj = pi.get("redemptionName");
+                        if(obj == null){
+                            throw new NullPointerException();
+                        }
+                        String str = (String) obj.__tojava__(String.class);
+                        if(str == null){
+                            throw new NullPointerException();
+                        }
+                        name = str;
+                    }catch (Exception ignored){}
+
                     Envierment env = Envierment.valueOf((String) pi.get("env").__tojava__(String.class));
-                    if(actionId.equalsIgnoreCase(id) && (env == Envierment.PLUGIN || env == Envierment.BOTH)){
+                    if((actionId.equals(id) && name.equals(event.getRedemption().getReward().getTitle())) && (env == Envierment.PLUGIN || env == Envierment.BOTH)){
                         pi.get("run").__call__(new PyObject[]{
                                 new PyLong(cost),
                                 new PyString(userName),
                                 Py.java2py(user),
                                 Py.java2py(new Handler(p, plugin)),
-                                Py.java2py(new Vector2I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ())),
-                                new PyInteger(odds)
+                                Py.java2py(new Vector3I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ())),
+                                new PyInteger(odds),
+                                Py.java2py(event.getRedemption())
                         });
                     }
                 }catch (Exception e){

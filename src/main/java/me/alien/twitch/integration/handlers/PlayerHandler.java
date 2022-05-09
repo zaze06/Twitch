@@ -1,7 +1,7 @@
 package me.alien.twitch.integration.handlers;
 
 import me.alien.twitch.integration.Main;
-import me.alien.twitch.integration.util.Vector2I;
+import me.alien.twitch.integration.util.Vector3I;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
@@ -42,9 +42,9 @@ public class PlayerHandler {
         });
     }
 
-    public Vector2I getPos(){
+    public Vector3I getPos(){
         Location pos = p.getLocation();
-        return new Vector2I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+        return new Vector3I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
     }
 
     public boolean addEffect(String effect, int duration, int amplification){
@@ -62,5 +62,9 @@ public class PlayerHandler {
 
     public WorldHandler getWorld(){
         return new WorldHandler(p.getWorld(), plugin);
+    }
+
+    public Player getPlayer() {
+        return p;
     }
 }

@@ -4,9 +4,9 @@ env = "PLUGIN"
 redemptionId = "5ca2b532-83b4-4821-b0b7-2205c9c9da28"
 
 
-def run(cost, user_name, user, handler, pos, odds):
+def run(cost, user_name, user, handler, pos, odds, redemption):
     world = handler.getWorld()
-    if odds <= 5:
+    if odds <= 100:#5:
         e = world.spawnEntity(pos, "CREEPER")
         e.setSilent(True)
         e.setPowerd(True)

@@ -116,7 +116,14 @@ public final class Main extends JavaPlugin {
             if(!file.exists()){
                 file.mkdirs();
             }
-            readmeEventAction.addAll(Arrays.asList(file.list()));
+            readmeEventAction.addAll(Arrays.asList((Objects.requireNonNull(file.list(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    if (name.equals("shared.py"))
+                        return false;
+                    return true;
+                }
+            })))));
         }catch (NullPointerException ignored){
 
         }

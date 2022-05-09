@@ -1,7 +1,6 @@
 package me.alien.twitch.integration.handlers;
 
 import me.alien.twitch.integration.Main;
-import me.alien.twitch.integration.util.Vector2I;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -30,7 +29,7 @@ public class Handler {
         e.customName(Component.text(name));
     }
 
-    public void setGraceTime(int time){
+    public void setTime(int time){
         plugin.time = time;
     }
 }
