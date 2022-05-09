@@ -1,11 +1,13 @@
 package me.alien.twitch.integration;
 
 import me.alien.twitch.integration.handlers.Envierment;
+import me.alien.twitch.integration.handlers.Handler;
 import me.alien.twitch.integration.handlers.PlayerHandler;
 import com.github.twitch4j.pubsub.domain.ChannelPointsUser;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 import me.alien.twitch.integration.util.Vector2I;
 import net.kyori.adventure.text.Component;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -53,6 +55,8 @@ public class Redemption extends Thread {
 
         for(Player player : players) {
 
+            if(player.getGameMode() == GameMode.SPECTATOR) continue;
+
             final Player p = player;
 
             int pitch = (int) p.getLocation().getPitch();
@@ -91,7 +95,14 @@ public class Redemption extends Thread {
                     String actionId = (String) pi.get("redemptionId").__tojava__(String.class);
                     Envierment env = Envierment.valueOf((String) pi.get("env").__tojava__(String.class));
                     if(actionId.equalsIgnoreCase(id) && (env == Envierment.PLUGIN || env == Envierment.BOTH)){
-                        pi.get("run").__call__(new PyObject[]{new PyLong(cost), new PyString(userName), Py.java2py(user), Py.java2py(new PlayerHandler(p, plugin)), Py.java2py(new Vector2I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()))});
+                        pi.get("run").__call__(new PyObject[]{
+                                new PyLong(cost),
+                                new PyString(userName),
+                                Py.java2py(user),
+                                Py.java2py(new Handler(p, plugin)),
+                                Py.java2py(new Vector2I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ())),
+                                new PyInteger(odds)
+                        });
                     }
                 }catch (Exception e){
                     e.printStackTrace();

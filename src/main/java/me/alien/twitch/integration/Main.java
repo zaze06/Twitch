@@ -596,7 +596,7 @@ public final class Main extends JavaPlugin {
 
         if (label.equalsIgnoreCase("connect")) {
             if (args.length > 0) {
-                if(sender instanceof Player p) {
+                if(sender instanceof Player p || true) {
                     if (chat == null) {
                         chat = args[0];
                         User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Arrays.asList(chat)).execute().getUsers().get(0);
@@ -613,7 +613,7 @@ public final class Main extends JavaPlugin {
                         twitchClient.getEventManager().onEvent(RewardRedeemedEvent.class, this::onRedemption);
                         sender.getServer().sendMessage(Component.text("<a_twitch_bot_> Bot connected to " + chat + " stream."));
                         isConnected = true;
-                        host = p;
+                        //host = p;
                     } else {
                         sender.sendMessage("<a_twitch_bot_> I'm already connected to a stream. Use /disconnect first.");
                     }

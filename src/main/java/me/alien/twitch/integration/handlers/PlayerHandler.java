@@ -1,11 +1,17 @@
 package me.alien.twitch.integration.handlers;
 
 import me.alien.twitch.integration.Main;
+import me.alien.twitch.integration.util.Vector2I;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PlayerHandler {
-    final Player p;
-    final Main plugin;
+    private final Player p;
+    private final Main plugin;
 
     public PlayerHandler(Player p, Main plugin) {
         this.p = p;
@@ -34,6 +40,24 @@ public class PlayerHandler {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             p.setHealth(p.getHealth() - hp);
         });
+    }
+
+    public Vector2I getPos(){
+        Location pos = p.getLocation();
+        return new Vector2I(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+    }
+
+    public boolean addEffect(String effect, int duration, int amplification){
+        AtomicBoolean success = new AtomicBoolean(false);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            PotionEffectType eff = PotionEffectType.getByName(effect);
+            if(eff == null){
+                return;
+            }
+            p.addPotionEffect(new PotionEffect(eff, duration, amplification));
+            success.set(true);
+        });
+        return success.get();
     }
 
     public WorldHandler getWorld(){
