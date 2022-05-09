@@ -1,13 +1,10 @@
-package alien.twitchIntegration;
+package me.alien.twitch.integration;
 
 import com.github.twitch4j.helix.domain.User;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import io.papermc.paper.text.PaperComponents;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.title.Title;
-import net.kyori.adventure.title.TitlePart;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -19,7 +16,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 

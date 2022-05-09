@@ -28,7 +28,7 @@ dependencies {
     implementation 'org.json:json:20220320'
     implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.4'
     //implementation (name:'rhino-1.7.14', ext:'jar')
-    implementation 'org.python:jython:2.7.2'
+    implementation (name: 'jython-standalone-2.7.2', ext: 'jar')
 
     compileOnly 'io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT'
 }

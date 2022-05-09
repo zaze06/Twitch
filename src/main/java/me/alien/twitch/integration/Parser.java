@@ -1,4 +1,4 @@
-package alien.twitchIntegration;
+package me.alien.twitch.integration;
 
 import java.util.ArrayList;
 import java.util.Map;

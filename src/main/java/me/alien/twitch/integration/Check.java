@@ -1,4 +1,4 @@
-package alien.twitchIntegration;
+package me.alien.twitch.integration;
 
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;

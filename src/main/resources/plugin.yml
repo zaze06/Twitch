@@ -1,6 +1,6 @@
 name: Twitch
 version: '${version}'
-main: alien.twitchIntegration.Main
+main: me.alien.twitch.integration.Main
 api-version: 1.18
 authors: [ Alien ]
 

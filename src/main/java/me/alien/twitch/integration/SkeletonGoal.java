@@ -1,4 +1,4 @@
-package alien.twitchIntegration;
+package me.alien.twitch.integration;
 
 import com.destroystokyo.paper.entity.ai.Goal;
 import com.destroystokyo.paper.entity.ai.GoalKey;

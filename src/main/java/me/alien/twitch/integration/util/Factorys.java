@@ -1,6 +1,6 @@
-package alien.twitchIntegration.util;
+package me.alien.twitch.integration.util;
 
-import alien.twitchIntegration.Main;
+import me.alien.twitch.integration.Main;
 import com.github.twitch4j.common.events.domain.EventUser;
 import com.github.twitch4j.pubsub.domain.ChannelPointsRedemption;
 import com.github.twitch4j.pubsub.domain.ChannelPointsReward;

@@ -1,7 +1,7 @@
-package alien.twitchIntegration;
+package me.alien.twitch.integration;
 
-import alien.twitchIntegration.util.Factorys;
-import alien.twitchIntegration.util.ValueComparator;
+import me.alien.twitch.integration.util.Factorys;
+import me.alien.twitch.integration.util.ValueComparator;
 import com.github.philippheuer.credentialmanager.CredentialManager;
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;

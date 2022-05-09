@@ -1,4 +1,4 @@
-package alien.twitchIntegration.util;
+package me.alien.twitch.integration.util;
 
 import java.util.Comparator;
 import java.util.Map;
