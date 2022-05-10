@@ -15,7 +15,7 @@ def run(cost, user_name, user, handler, pos1, odds, redemption):
         for x in nums(-3, 3):
             for y in nums(-3, 3):
                 for z in nums(-3, 3):
-                    world.setBlock(pos.close().add(x, y, z), "AIR")
+                    world.setBlock(pos.clone().add(x, y, z), "AIR")
 
         player.addEffect(random.choice(potion), 800, 4)
         player.addEffect(random.choice(potion), 800, 4)

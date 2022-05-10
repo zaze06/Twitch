@@ -95,6 +95,8 @@ public class Redemption extends Thread {
                     //pi.set("shared", pi.eval(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n")));
                     //pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
                     //pi.eval(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
+                    imp.createFromCode("shared", pi.compile(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n")));
+                    //imp.load(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
                     pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/" + redemtion), "\n"));
                     String actionId = "";
                     try{
@@ -122,7 +124,8 @@ public class Redemption extends Thread {
                     }catch (Exception ignored){}
 
                     Envierment env = Envierment.valueOf((String) pi.get("env").__tojava__(String.class));
-                    if((actionId.equals(id) && name.equals(event.getRedemption().getReward().getTitle())) && (env == Envierment.PLUGIN || env == Envierment.BOTH)){
+                    if((actionId.equals(id) || name.equals(event.getRedemption().getReward().getTitle())) && (env == Envierment.PLUGIN || env == Envierment.BOTH)){
+                        plugin.getLogger().info("Found "+redemtion);
                         pi.get("run").__call__(new PyObject[]{
                                 new PyLong(cost),
                                 new PyString(userName),

@@ -24,7 +24,7 @@ public class WorldHandler {
     public boolean setBlock(Vector3I pos, String block){
         Material mat;
         try{
-            mat = Material.valueOf(block);
+            mat = Material.valueOf(block.toUpperCase());
         }catch (Exception e){
             return false;
         }
@@ -39,7 +39,7 @@ public class WorldHandler {
         for(String string : replace){
             Material mat;
             try{
-                mat = Material.valueOf(block);
+                mat = Material.valueOf(block.toUpperCase());
             }catch (Exception e){
                 continue;
             }
@@ -50,7 +50,7 @@ public class WorldHandler {
 
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             if(!replaceList.contains(this.world.getType(pos.getX(), pos.getY(), pos.getZ()))){
-                this.world.setType(pos.getX(), pos.getY(), pos.getZ(), Material.valueOf(block));
+                this.world.setType(pos.getX(), pos.getY(), pos.getZ(), Material.valueOf(block.toUpperCase()));
             }
         });
 
@@ -77,7 +77,7 @@ public class WorldHandler {
         AtomicReference<Entity> e = new AtomicReference<>();
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Location loc = new Location(world, pos.getX(), pos.getY(), pos.getZ());
-            e.set(this.world.spawnEntity(loc, EntityType.valueOf(name)));
+            e.set(this.world.spawnEntity(loc, EntityType.valueOf(name.toUpperCase())));
         });
         return e.get();
     }
