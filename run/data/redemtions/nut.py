@@ -44,48 +44,48 @@ def run(cost, user_name, user, handler, player_pos, odds, redemption):
                 e = world.spawnEntity(pos, "Pillager")
                 e.setSilent(True)
                 e.setTarget(player)
-                handler.setName(user_name, e)
+                e.setName(user_name)
                 pilliger -= 1
             elif vindicators > 0:
                 e = world.spawnEntity(pos, "Vindicator")
                 e.setSilent(True)
                 e.setTarget(player)
-                handler.setName(user_name, e)
+                e.setName(user_name)
                 vindicators -= 1
             elif witch > 0:
                 e = world.spawnEntity(pos, "witch")
                 e.setSilent(True)
                 e.setTarget(player)
-                handler.setName(user_name, e)
+                e.setName(user_name)
                 witch -= 1
             elif evoker > 0:
                 e = world.spawnEntity(pos, "evoker")
                 e.setSilent(True)
                 e.setTarget(player)
-                handler.setName(user_name, e)
+                e.setName(user_name)
                 evoker -= 1
             elif ravagerEvoker > 0:
                 rider = world.spawnEntity(pos, "Evoker")
                 rider.setSilent(True)
                 rider.setTarget(player)
-                handler.setName(user_name, rider)
+                rider.setName(user_name)
 
                 e = world.spawnEntity(pos, "Ravager")
                 e.setSilent(True)
                 e.setTarget(player)
                 e.addPassenger(rider)
-                handler.setName(user_name, e)
+                e.setName(user_name)
                 ravagerEvoker -= 1
 
             elif ravagerVindicator > 0:
                 rider = world.spawnEntity(pos, "Vindicator")
                 rider.setSilent(True)
                 rider.setTarget(player)
-                handler.setName(user_name, rider)
+                rider.setName(user_name)
 
                 e = world.spawnEntity(pos, "Ravager")
                 e.setSilent(True)
                 e.setTarget(player)
                 e.addPassenger(rider)
-                handler.setName(user_name, e)
+                e.setName(user_name)
                 ravagerVindicator -= 1

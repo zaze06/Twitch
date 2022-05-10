@@ -7,9 +7,11 @@ env = "PLUGIN"
 def run(cost, user_name, user, handler, player_pos, odds, redemption):
     if odds <= 100:
         world = handler.getWorld()
+
         e = world.getRandomEntityInWorld()
-        e = world.spawnEntity(player_pos, world.getType(e))
-        handler.setName(user_name, e)
+        e = world.spawnEntity(player_pos, e.getType())
+        e.setName(redemption.getUserInput())
+
         e = world.getRandomEntityInWorld()
-        world.spawnEntity(player_pos, world.getType(e))
-        handler.setName(user_name, e)
+        world.spawnEntity(player_pos, e.getType())
+        e.setName(redemption.getUserInput())

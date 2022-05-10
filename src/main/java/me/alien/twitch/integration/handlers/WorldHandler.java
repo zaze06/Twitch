@@ -33,6 +33,7 @@ public class WorldHandler {
         });
         return true;
     }
+
     public boolean setBlock(Vector3I pos, String block, String... replace){
         ArrayList<Material> replaceList = new ArrayList<>();
 
@@ -73,29 +74,21 @@ public class WorldHandler {
         return isAir.get();
     }
 
-    public Entity spawnEntity(Vector3I pos, String name){
+    public EntityHandler spawnEntity(Vector3I pos, String name){
         AtomicReference<Entity> e = new AtomicReference<>();
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Location loc = new Location(world, pos.getX(), pos.getY(), pos.getZ());
             e.set(this.world.spawnEntity(loc, EntityType.valueOf(name.toUpperCase())));
         });
-        return e.get();
+        return new EntityHandler(e.get(), plugin);
     }
 
-    public Entity getRandomEntityInWorld(){
+    public EntityHandler getRandomEntityInWorld(){
         AtomicReference<Entity> e = new AtomicReference<>();
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             e.set(world.getLivingEntities().get((int) (Math.random() * world.getLivingEntities().size())));
         });
-        return e.get();
-    }
-
-    public String getType(Entity e){
-        AtomicReference<String> name = new AtomicReference<>("");
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            name.set(e.getType().name());
-        });
-        return name.get();
+        return new EntityHandler(e.get(), plugin);
     }
 
     public int getMaxHeight(){

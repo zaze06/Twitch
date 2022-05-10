@@ -67,4 +67,7 @@ public class PlayerHandler {
     public Player getPlayer() {
         return p;
     }
+    public EntityHandler asEntity(){
+        return new EntityHandler(p, plugin);
+    }
 }

@@ -25,10 +25,6 @@ public class Handler {
         return playerHandler.getWorld();
     }
 
-    public void setName(String name, Entity e){
-        e.customName(Component.text(name));
-    }
-
     public void setTime(int time){
         plugin.time = time;
     }
