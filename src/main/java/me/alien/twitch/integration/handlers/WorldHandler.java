@@ -76,34 +76,62 @@ public class WorldHandler {
 
     public EntityHandler spawnEntity(Vector3I pos, String name){
         AtomicReference<Entity> e = new AtomicReference<>();
+        AtomicBoolean test = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Location loc = new Location(world, pos.getX(), pos.getY(), pos.getZ());
             e.set(this.world.spawnEntity(loc, EntityType.valueOf(name.toUpperCase())));
+            test.set(true);
         });
+        while (!test.get()){
+            try{
+                wait(100);
+            }catch (InterruptedException ignored){}
+        }
         return new EntityHandler(e.get(), plugin);
     }
 
     public EntityHandler getRandomEntityInWorld(){
         AtomicReference<Entity> e = new AtomicReference<>();
+        AtomicBoolean test = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             e.set(world.getLivingEntities().get((int) (Math.random() * world.getLivingEntities().size())));
+            test.set(true);
         });
+        while (!test.get()){
+            try{
+                wait(100);
+            }catch (InterruptedException ignored){}
+        }
         return new EntityHandler(e.get(), plugin);
     }
 
     public int getMaxHeight(){
         AtomicInteger max = new AtomicInteger();
+        AtomicBoolean test = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             max.set(world.getMaxHeight());
+            test.set(true);
         });
+        while (!test.get()){
+            try{
+                wait(100);
+            }catch (InterruptedException ignored){}
+        }
         return max.get();
     }
 
     public int getMinHeight(){
         AtomicInteger min = new AtomicInteger();
+        AtomicBoolean test = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             min.set(world.getMinHeight());
+            test.set(true);
         });
+        while (!test.get()){
+            try{
+                wait(100);
+            }catch (InterruptedException ignored){}
+        }
         return min.get();
     }
 
