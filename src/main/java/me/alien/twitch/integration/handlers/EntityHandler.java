@@ -12,8 +12,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class EntityHandler {
-    private Entity e;
-    private Main plugin;
+    private final Entity e;
+    private final Main plugin;
 
     public EntityHandler(Entity e, Main plugin) {
         this.e = e;
