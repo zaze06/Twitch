@@ -13,5 +13,6 @@ def run(cost, user_name, user, handler, player_pos, odds, redemption):
         e.setName(redemption.getUserInput())
 
         e = world.getRandomEntityInWorld()
-        world.spawnEntity(player_pos, e.getType())
+        e = world.spawnEntity(player_pos, e.getType())
         e.setName(redemption.getUserInput())
+

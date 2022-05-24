@@ -80,13 +80,15 @@ public class WorldHandler {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Location loc = new Location(world, pos.getX(), pos.getY(), pos.getZ());
             e.set(this.world.spawnEntity(loc, EntityType.valueOf(name.toUpperCase())));
-            test.set(true);
+            synchronized (test) {
+                test.notifyAll();
+            }
         });
-        while (!test.get()){
-            try{
-                wait(100);
-            }catch (InterruptedException ignored){}
-        }
+        try{
+            synchronized (test) {
+                test.wait();
+            }
+        }catch (InterruptedException ignored){}
         return new EntityHandler(e.get(), plugin);
     }
 
@@ -96,12 +98,15 @@ public class WorldHandler {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             e.set(world.getLivingEntities().get((int) (Math.random() * world.getLivingEntities().size())));
             test.set(true);
+            synchronized (test) {
+                test.notifyAll();
+            }
         });
-        while (!test.get()){
-            try{
-                wait(100);
-            }catch (InterruptedException ignored){}
-        }
+        try{
+            synchronized (test) {
+                test.wait();
+            }
+        }catch (InterruptedException ignored){}
         return new EntityHandler(e.get(), plugin);
     }
 
@@ -111,12 +116,15 @@ public class WorldHandler {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             max.set(world.getMaxHeight());
             test.set(true);
+            synchronized (test) {
+                test.notifyAll();
+            }
         });
-        while (!test.get()){
-            try{
-                wait(100);
-            }catch (InterruptedException ignored){}
-        }
+        try{
+            synchronized (test) {
+                test.wait();
+            }
+        }catch (InterruptedException ignored){}
         return max.get();
     }
 
@@ -126,12 +134,15 @@ public class WorldHandler {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             min.set(world.getMinHeight());
             test.set(true);
+            synchronized (test) {
+                test.notifyAll();
+            }
         });
-        while (!test.get()){
-            try{
-                wait(100);
-            }catch (InterruptedException ignored){}
-        }
+        try{
+            synchronized (test) {
+                test.wait();
+            }
+        }catch (InterruptedException ignored){}
         return min.get();
     }
 

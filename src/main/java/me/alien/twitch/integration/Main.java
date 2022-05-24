@@ -116,14 +116,7 @@ public final class Main extends JavaPlugin {
             if(!file.exists()){
                 file.mkdirs();
             }
-            readmeEventAction.addAll(Arrays.asList((Objects.requireNonNull(file.list(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    if (name.equals("shared.py"))
-                        return false;
-                    return true;
-                }
-            })))));
+            readmeEventAction.addAll(Arrays.asList((Objects.requireNonNull(file.list((dir, name) -> !name.equals("shared.py"))))));
         }catch (NullPointerException ignored){
 
         }
@@ -252,7 +245,7 @@ public final class Main extends JavaPlugin {
                         Integer points = viewerPoints.get(key.getId());
                         points = (points == null ? 0 : points);
                         viewerPoints.put(key.getId(), points + 50);
-                        getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
+                        //getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
                     }
                 }
             }
@@ -601,7 +594,14 @@ public final class Main extends JavaPlugin {
             }
         }else
 
-        if (label.equalsIgnoreCase("connect")) {
+        if(label.equalsIgnoreCase("run")){
+            EventUser user = new EventUser("426779304", "AlienFromDia");
+            int i = 0;
+            for(String key : plugin.redemptions.keySet()){
+                plugin.twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now().plusSeconds(i), Factorys.redemptionFactory(user, plugin, key)));
+                i++;
+            }
+        }else if (label.equalsIgnoreCase("connect")) {
             if (args.length > 0) {
                 if(sender instanceof Player p || true) {
                     if (chat == null) {

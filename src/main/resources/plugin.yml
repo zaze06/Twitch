@@ -19,3 +19,4 @@ commands:
     description: "adds a grace period for <min>"
   points:
     description: "Gives a top 10 list of users and there points"
+  run:

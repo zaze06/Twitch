@@ -5,7 +5,7 @@ env = "PLUGIN"
 
 
 def run(cost, user_name, user, handler, player_pos, odds, redemption):
-    if odds <= 100:#40:
-        handler.setTime(60)
-    elif odds <= 100:
+    if odds <= 30:#40:
         handler.setTime(30)
+    elif odds <= 60:
+        handler.setTime(60)

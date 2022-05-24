@@ -55,4 +55,13 @@ public class Vector3I {
     public Vector3I clone(){
         return new Vector3I(x,y,z);
     }
+
+    @Override
+    public String toString() {
+        return "Vector3I{" +
+                "x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
+    }
 }

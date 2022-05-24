@@ -18,6 +18,7 @@ redemptionName = "XXXX"
 # world or any other part)
 env = "PLUGIN"
 # other variables you might want
+# other methods you might want to use
 
 
 # run function:

@@ -37,11 +37,21 @@ public class EntityHandler {
     public boolean setTarget(Entity e){
         AtomicBoolean success = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if(this.e instanceof Monster me && e instanceof LivingEntity le){
+            if(this.e instanceof Monster me && e instanceof LivingEntity le) {
                 me.setTarget(le);
                 success.set(true);
+                synchronized (success) {
+                    success.notifyAll();
+                }
             }
         });
+        try {
+            synchronized (success) {
+                success.wait();
+            }
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
         return success.get();
     }
 
@@ -50,32 +60,52 @@ public class EntityHandler {
     }
 
     public void setName(String name){
-        e.customName(Component.text(name));
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            e.customName(Component.text(name));
+        });
     }
 
-    public boolean addPassenger(Entity e){
+    public boolean addPassenger(EntityHandler e){
         AtomicBoolean success = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            success.set(this.e.addPassenger(e));
+            success.set(this.e.addPassenger(e.getEntity()));
+            synchronized (success) {
+                success.notifyAll();
+            }
         });
+        try {
+            synchronized (success) {
+                success.wait();
+            }
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
         return success.get();
     }
 
-    public boolean setPowered(boolean powered){
-        AtomicBoolean success = new AtomicBoolean(false);
+    public void setPowered(boolean powered){
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if(e instanceof Creeper c){
+            if(e instanceof Creeper c) {
                 c.setPowered(powered);
             }
         });
-        return success.get();
     }
 
     public String getType(){
         AtomicReference<String> type = new AtomicReference<>("");
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             type.set(e.getType().name());
+            synchronized (type) {
+                type.notifyAll();
+            }
         });
+        try {
+            synchronized (type) {
+                type.wait();
+            }
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
         return type.get();
     }
 
