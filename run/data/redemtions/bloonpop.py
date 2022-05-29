@@ -11,11 +11,17 @@ def run(cost, user_name, user, handler, pos1, odds, redemption):
     player = handler.getPlayer()
     pos = player.getPos()
 
-    if odds <= 100:#50:
-        for x in nums(-3, 3):
-            for y in nums(-3, 3):
-                for z in nums(-3, 3):
-                    world.setBlock(pos.clone().add(x, y, z), "AIR")
+    if odds <= 50:
+        if odds <= 3:
+            for x in nums(-100, 100):
+                for y in nums(-3, 3):
+                    for z in nums(-100, 100):
+                        world.setBlock(pos.clone().add(x, y, z), "AIR")
+        else:
+            for x in nums(-3, 3):
+                for y in nums(-3, 3):
+                    for z in nums(-3, 3):
+                        world.setBlock(pos.clone().add(x, y, z), "AIR")
 
         player.addEffect(random.choice(potion), 800, 4)
         player.addEffect(random.choice(potion), 800, 4)

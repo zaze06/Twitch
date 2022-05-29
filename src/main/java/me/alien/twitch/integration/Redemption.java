@@ -125,7 +125,7 @@ public class Redemption extends Thread {
                     }catch (Exception ignored){}
 
                     Envierment env = Envierment.valueOf((String) pi.get("env").__tojava__(String.class));
-                    if((actionId.equals(id) || name.equals(event.getRedemption().getReward().getTitle())) && (env == Envierment.PLUGIN || env == Envierment.BOTH)){
+                    if((actionId.equals(id) || name.equals(event.getRedemption().getReward().getTitle())) && (env == Envierment.PLUGIN || env == Envierment.BOTH) && !plugin.grace){
                         plugin.getLogger().info("Found "+redemtion);
                         pi.get("run").__call__(new PyObject[]{
                                 new PyLong(cost),
@@ -455,11 +455,7 @@ public class Redemption extends Thread {
                 }
             }
         }
-        synchronized (plugin.viewerPoints) {
-            Integer points = plugin.viewerPoints.get(user.getId());
-            points = (points == null ? 0 : points);
-            plugin.viewerPoints.put(user.getId(), (int) ((points + (cost * 0.10))));
-        }
+        plugin.instance.addPoints(userName, (long) (cost * 0.10));
     }
 
     static class WaterCube extends Thread{

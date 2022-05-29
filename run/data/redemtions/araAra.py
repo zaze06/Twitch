@@ -4,7 +4,7 @@ redemptionId = "74671ad8-542d-497f-be42-f324df092e2b"
 env = "PLUGIN"
 
 def run(cost, user_name, user, handler, player_pos, odds, redemption):
-    if odds <= 100:#50:
+    if odds <= 50:
         pos = player_pos
         world = handler.getWorld()
         player = handler.getPlayer()

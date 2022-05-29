@@ -6,7 +6,7 @@ env = "PLUGIN"
 
 
 def run(cost, user_name, user, handler, player_pos, odds, redemption):
-    if odds <= 100:#20:
+    if odds <= 20:
         world = handler.getWorld()
         player = handler.getPlayer().getPlayer()
 
@@ -14,10 +14,13 @@ def run(cost, user_name, user, handler, player_pos, odds, redemption):
         vindicators = int((random.random() * 2)) + 5
         witch = int((random.random() * 2)) + 1
         evoker = 2
-        ravagerVindicator = int((random.random() * 1)) + 1
-        ravagerEvoker = 1
+        ravager_vindicator = int((random.random() * 1)) + 1
+        ravager_evoker = 1
 
-        total = pilliger + vindicators + witch + evoker + ravagerEvoker + ravagerVindicator
+        print(str(pilliger)+" "+str(vindicators)+" "+str(witch)+" "+str(evoker)+" "+str(ravager_vindicator)+" "+str(ravager_evoker))
+
+
+        total = pilliger + vindicators + witch + evoker + ravager_evoker + ravager_vindicator
 
         i = 0
 
@@ -64,7 +67,7 @@ def run(cost, user_name, user, handler, player_pos, odds, redemption):
                 e.setTarget(player)
                 e.setName(user_name)
                 evoker -= 1
-            elif ravagerEvoker > 0:
+            elif ravager_evoker > 0:
                 rider = world.spawnEntity(pos, "Evoker")
                 rider.setSilent(True)
                 rider.setTarget(player)
@@ -75,9 +78,9 @@ def run(cost, user_name, user, handler, player_pos, odds, redemption):
                 e.setTarget(player)
                 e.addPassenger(rider)
                 e.setName(user_name)
-                ravagerEvoker -= 1
+                ravager_evoker -= 1
 
-            elif ravagerVindicator > 0:
+            elif ravager_vindicator > 0:
                 rider = world.spawnEntity(pos, "Vindicator")
                 rider.setSilent(True)
                 rider.setTarget(player)
@@ -88,4 +91,7 @@ def run(cost, user_name, user, handler, player_pos, odds, redemption):
                 e.setTarget(player)
                 e.addPassenger(rider)
                 e.setName(user_name)
-                ravagerVindicator -= 1
+                ravager_vindicator -= 1
+
+
+# run(0, None, None, None, None, 4, None)

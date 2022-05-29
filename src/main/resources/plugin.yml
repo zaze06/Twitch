@@ -19,4 +19,7 @@ commands:
     description: "adds a grace period for <min>"
   points:
     description: "Gives a top 10 list of users and there points"
-  run:
+  force-event:
+    description: "forces an event to run"
+  start-events:
+    description: "Starts the event handler"

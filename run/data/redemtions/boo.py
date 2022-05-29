@@ -5,5 +5,5 @@ env = "PLUGIN"
 
 
 def run(cost, user_name, user, handler, player_pos, odds, redemption):
-    if odds <= 100:#70:
+    if odds <= 70:
         handler.getPlayer().addEffect("BLINDNESS", 400, 3)

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'Alien'
-version = '3.7'
+version = '3.8'
 
 repositories {
     mavenCentral()
@@ -20,6 +20,10 @@ repositories {
     flatDir {
         dirs 'libs'
     }
+    jcenter()
+    maven {
+        url 'https://jitpack.io'
+    }
 }
 
 dependencies {
@@ -29,6 +33,7 @@ dependencies {
     implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.4'
     //implementation (name:'rhino-1.7.14', ext:'jar')
     implementation (name: 'jython-standalone-2.7.2', ext: 'jar')
+    implementation 'com.github.TheLimeGlass:StreamElements-Java-API:Beta-1'
 
     compileOnly 'io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT'
 }

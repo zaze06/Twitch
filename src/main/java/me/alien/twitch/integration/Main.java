@@ -1,5 +1,6 @@
 package me.alien.twitch.integration;
 
+import me.alien.twitch.integration.events.RandomEvent;
 import me.alien.twitch.integration.util.Factorys;
 import me.alien.twitch.integration.util.ValueComparator;
 import com.github.philippheuer.credentialmanager.CredentialManager;
@@ -13,6 +14,10 @@ import com.github.twitch4j.common.events.domain.EventUser;
 import com.github.twitch4j.helix.domain.User;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 
+import me.limeglass.streamelements.api.StreamElements;
+import me.limeglass.streamelements.api.StreamElementsBuilder;
+import me.limeglass.streamelements.internals.StreamElementsClient;
+import me.limeglass.streamelements.api.StreamElementsBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -30,6 +35,8 @@ import org.json.JSONObject;
 
 import javax.swing.Timer;
 import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
@@ -39,6 +46,7 @@ public final class Main extends JavaPlugin {
     private final JSONObject credentials = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/credentials.json")));
     public final JSONObject redemptions = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/redemtions.json")));
     public TwitchClient twitchClient;
+    public StreamElements instance;
     public final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
     public final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
     private final JSONObject mysql = credentials.getJSONObject("mysql");
@@ -61,12 +69,14 @@ public final class Main extends JavaPlugin {
     public Player host;
     public Connection conn = null;
     public boolean grace = false;
-    private int graceTime = 0;
+    public int graceTime = 0;
     private int graceTimeOrig = 0;
     private final boolean[] timersNotFinished = new boolean[12];
     private final int[] timersDelay = new int[12];
     private Timer timers;
     public String channelId = null;
+    public RandomEvent randomEvent;
+
     public static Main plugin;
 
     public static void main(String[] args) {
@@ -78,13 +88,15 @@ public final class Main extends JavaPlugin {
     public void onEnable() {
         plugin = this;
 
+        randomEvent = new RandomEvent(this);
+
         credentialManager.registerIdentityProvider(new TwitchIdentityProvider(credentials.getString("bot_ID"), credentials.getString("bot_Secreat"), ""));
 
         Arrays.fill(timersNotFinished, false);
         Arrays.fill(timersDelay, 0);
 
 
-        try {
+        /*try {
             Class.forName("org.mariadb.jdbc.Driver").newInstance();
             String connection = "jdbc:mariadb://"+mysql.getString("ip")+"/"+mysql.getString("database")+"?user="+ mysql.getString("username")+"&password="+ mysql.getString("password");
             getServer().getLogger().info(connection);
@@ -92,7 +104,7 @@ public final class Main extends JavaPlugin {
             String con2 = "jdbc:mariadb://"+mysql.getString("ip")+"/"+mysql.getString("database");
             conn = DriverManager.getConnection(con2, "twitch_bot", "Twitch_bot");
         } catch (Exception ex) {
-            getServer().getLogger().warning("Cant connect to sql server, defaulting to json backup may be out of date");
+            /*getServer().getLogger().warning("Cant connect to sql server, defaulting to json backup may be out of date");
             try {
                 JSONObject points = new JSONObject(Loader.loadFile(new FileInputStream(System.getProperty("user.dir")+"/data/backup.json")));
                 for(String key : points.keySet()){
@@ -109,7 +121,7 @@ public final class Main extends JavaPlugin {
                 }
             }
             //ex.printStackTrace();
-        }
+        }*/
 
         try{
             File file = new File(System.getProperty("user.dir")+"/data/redemtions");
@@ -121,7 +133,7 @@ public final class Main extends JavaPlugin {
 
         }
 
-        if(conn != null) {
+        /*if(conn != null) {
             try {
                 Statement stmt = conn.createStatement();
 
@@ -137,7 +149,7 @@ public final class Main extends JavaPlugin {
                 System.out.println("SQLState: " + ex.getSQLState());
                 System.out.println("VendorError: " + ex.getErrorCode());
             }
-        }
+        }*/
 
         getServer().getPluginManager().registerEvents(new MyListener(this), this);
 
@@ -148,6 +160,12 @@ public final class Main extends JavaPlugin {
                 .withEnableTMI(true)
                 .withChatAccount(credential)
                 .withCredentialManager(credentialManager)
+                .build();
+
+        instance = new StreamElementsBuilder()
+                .withAccountID(credentials.getJSONObject("SE").getString("channel"))
+                .withToken(credentials.getJSONObject("SE").getString("token"))
+                .withConnectionTimeout(10000)
                 .build();
 
         config.addDefault("ChargedCreeperOdds", 5);
@@ -219,39 +237,33 @@ public final class Main extends JavaPlugin {
                     System.out.println("VendorError: " + ex.getErrorCode());
                 }
             }else{
-                JSONObject points = new JSONObject();
                 for(String key : viewerPoints.keySet()){
-                    points.put(key, viewerPoints.get(key));
+                    //points.put(key, viewerPoints.get(key));
+                    User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(key)).execute().getUsers().get(0);
+                    //instance.setCurrentUserPoints(user.getLogin(), key);
                 }
-                File file = new File(System.getProperty("user.dir")+"/data/backup.json");
-                try{
-                    if(!file.exists()){
-                        file.createNewFile();
-                    }
-                    BufferedWriter out = new BufferedWriter(new FileWriter(file));
-                    out.write(points.toString(4));
-                    out.flush();
-                }catch (Exception ignored){}
             }
         });
 
-        looper.start();
+        //looper.start();
 
         pointAccumulation = new Timer(5*1000*60, e -> {
-            if(twitchClient != null) {
-                List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
-                for (User key : users) {
-                    synchronized (viewerPoints) {
-                        Integer points = viewerPoints.get(key.getId());
-                        points = (points == null ? 0 : points);
-                        viewerPoints.put(key.getId(), points + 50);
-                        //getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
+            try {
+                if (twitchClient != null) {
+                    List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
+                    for (User key : users) {
+                        synchronized (viewerPoints) {
+                            Integer points = viewerPoints.get(key.getId());
+                            points = (points == null ? 0 : points);
+                            viewerPoints.put(key.getId(), points + 50);
+                            //getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
+                        }
                     }
                 }
-            }
+            }catch (Exception ignored){}
         });
 
-        pointAccumulation.start();
+        //pointAccumulation.start();
 
         timers = new Timer(1000, e -> {
             for(int i = 0; i < timersDelay.length; i++){
@@ -291,7 +303,7 @@ public final class Main extends JavaPlugin {
                 twitchClient.getChat().sendMessage(chat, "I was told to leave now so bye!");
             }
         }
-        if(conn != null) {
+        /*if(conn != null) {
             StringBuilder data = new StringBuilder("insert into aniki(id, points) values ");
             Set<String> set = viewerPoints.keySet();
             int i = 0;
@@ -320,7 +332,7 @@ public final class Main extends JavaPlugin {
                 out.write(points.toString(4));
                 out.flush();
             }catch (Exception ignored){}
-        }
+        }*/
     }
 
     private void onRedemption(RewardRedeemedEvent event) {
@@ -372,7 +384,8 @@ public final class Main extends JavaPlugin {
                     user1 = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers().get(0);
                 }catch (Exception e){getServer().getLogger().warning(e.getCause().toString());}
                 if(user1 != null) {
-                    twitchClient.getChat().sendMessage(chat, user1.getDisplayName() + " currently have " + viewerPoints.get(user1.getId()) + " Soul of the lost");
+                    Long points = instance.getUserPoints(user.getName()).getCurrentPoints();
+                    twitchClient.getChat().sendMessage(chat, user1.getDisplayName() + " currently have " + (points!=null?points:0) + " Soul of the lost");
                 }else{
                     /*List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers();
                     StringBuilder data = new StringBuilder();
@@ -383,7 +396,7 @@ public final class Main extends JavaPlugin {
                     twitchClient.getChat().sendMessage(chat, "Sorry @"+ user.getName()+" i cant find "+uname+" :(");
                 }
             }else {
-                Integer points = viewerPoints.get(user.getId());
+                Long points = instance.getUserPoints(user.getName()).getCurrentPoints();
                 twitchClient.getChat().sendMessage(chat, "@" + user.getName() + " you currently have " + (points!=null?points:0) + " Soul of the lost");
             }
         }
@@ -405,7 +418,8 @@ public final class Main extends JavaPlugin {
                     return;
                 }
 
-                Integer points = viewerPoints.get(user.getId());
+                long points = instance.getUserPoints(user.getName()).getCurrentPoints();
+                long orgPoints = points;
                 boolean removedPoints = false;
 
                 for(Player player : players) {
@@ -442,7 +456,7 @@ public final class Main extends JavaPlugin {
                     else if (redemption.equalsIgnoreCase("2") || redemption.equalsIgnoreCase("grace")) {
                         if (points >= 500 && !timersNotFinished[2]) {
                             grace = true;
-                            graceTime = 60;
+                            graceTime = 60*5;
                             graceTimeOrig = graceTime;
                             points -= 500;
                             timersDelay[2] = 2*60;
@@ -561,7 +575,7 @@ public final class Main extends JavaPlugin {
                     }
                 }
 
-                viewerPoints.put(user.getId(), points);
+                instance.subtractPoints(instance.getUserPoints(user.getName()).getUser(), (orgPoints-points));
             }
         }
         else {
@@ -573,44 +587,45 @@ public final class Main extends JavaPlugin {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(label.equalsIgnoreCase("spawn")){
-            if(sender instanceof Player p) {
+        if(label.equalsIgnoreCase("spawn")) {
+            if (sender instanceof Player p) {
                 int pro = 3;
-                if(args.length > 0){
-                    try{
+                if (args.length > 0) {
+                    try {
                         pro = Integer.parseInt(args[0]);
-                    }catch (Exception ignored){}
+                    } catch (Exception ignored) {
+                    }
                 }
                 host = p;
                 int finalPro = pro;
                 getServer().getScheduler().runTask(this, () -> {
                     Skeleton e = p.getWorld().spawn(p.getLocation(), Skeleton.class, CreatureSpawnEvent.SpawnReason.CUSTOM);
                     SkeletonGoal ai = new SkeletonGoal(this, e);
-                    if(!Bukkit.getMobGoals().hasGoal(e, ai.getKey())){
+                    if (!Bukkit.getMobGoals().hasGoal(e, ai.getKey())) {
                         Bukkit.getMobGoals().addGoal(e, finalPro, ai);
                     }
                     friendlyTeam.addEntities(e);
                 });
             }
-        }else
-
-        if(label.equalsIgnoreCase("run")){
+        }
+        else if(label.equalsIgnoreCase("run")){
             EventUser user = new EventUser("426779304", "AlienFromDia");
             int i = 0;
             for(String key : plugin.redemptions.keySet()){
                 plugin.twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now().plusSeconds(i), Factorys.redemptionFactory(user, plugin, key)));
                 i++;
             }
-        }else if (label.equalsIgnoreCase("connect")) {
+        }
+        else if(label.equalsIgnoreCase("connect")) {
             if (args.length > 0) {
                 if(sender instanceof Player p || true) {
                     if (chat == null) {
                         chat = args[0];
-                        User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Arrays.asList(chat)).execute().getUsers().get(0);
+                        User user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, List.of(chat)).execute().getUsers().get(0);
                         if(user == null){
                             sender.sendMessage("<a_twitch_bot_> I'm sorry but "+chat+" is not a valid twitch user name please make sure you spelled correctly.");
                             chat = null;
-                            return  true;
+                            return true;
                         }
                         channelId = user.getId();
                         twitchClient.getPubSub().listenForChannelPointsRedemptionEvents(credential, user.getId());
@@ -630,7 +645,7 @@ public final class Main extends JavaPlugin {
                 return true;
             }
         }
-        else if (label.equalsIgnoreCase("disconnect")) {
+        else if(label.equalsIgnoreCase("disconnect")) {
             if(chat != null) {
                 twitchClient.getChat().sendMessage(chat, "I was told to leave now, so bye!");
                 twitchClient.getChat().leaveChannel(chat);
@@ -644,7 +659,7 @@ public final class Main extends JavaPlugin {
             }
             return true;
         }
-        else if (label.equalsIgnoreCase("send")) {
+        else if(label.equalsIgnoreCase("send")) {
             if (args.length > 0) {
                 if (isConnected) {
                     StringBuilder message = new StringBuilder();
@@ -662,7 +677,7 @@ public final class Main extends JavaPlugin {
 
             return true;
         }
-        else if (label.equalsIgnoreCase("chat")) {
+        else if(label.equalsIgnoreCase("chat")) {
             if(args.length > 0){
                 if(isConnected) {
                     if (args[0].equalsIgnoreCase("twitch")) {
@@ -700,7 +715,8 @@ public final class Main extends JavaPlugin {
             }
 
             return true;
-        }else if(label.equalsIgnoreCase("grace")) {
+        }
+        else if(label.equalsIgnoreCase("grace")) {
             if(isConnected){
                 if(args.length > 0){
                     try {
@@ -715,7 +731,49 @@ public final class Main extends JavaPlugin {
                 }
             }
             return true;
-        }else if(label.equalsIgnoreCase("points")){
+        }
+        else if(label.equalsIgnoreCase("points")){
+            try {
+                URL url = new URL("https://api.streamelements.com/kappa/v2/points/"+credentials.getJSONObject("SE").getString("channel")+"/top/");
+                URLConnection con = url.openConnection();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                StringBuilder builder = new StringBuilder();
+                String tmp = "";
+                while ((tmp = reader.readLine()) != null) {
+                    builder.append(tmp);
+                }
+                JSONObject response = new JSONObject(builder.toString());
+                Map<String, Long> map = new HashMap<>();
+                for (Object obj : response.getJSONArray("users").toList()) {
+                    if (obj instanceof HashMap user) {
+                        map.put((String) user.get("username"), ((Integer)user.get("points")).longValue());
+                    } else {
+                        System.out.println(obj.getClass());
+                    }
+                }
+                TreeMap<String, Long> viewerPointsSorted = new TreeMap<>(new ValueComparator(map));
+                viewerPointsSorted.putAll(map);
+                ArrayList<Pair<String, Long>> topViewerPoints = new ArrayList<>();
+                int i = 0;
+                for(String key : viewerPointsSorted.keySet()){
+                    if(i > 9) break;
+                    topViewerPoints.add(i, new Pair<>(key, instance.getUserPoints(key).getCurrentPoints()));
+                    i++;
+                }
+                StringBuilder str = new StringBuilder();
+                str.append("Top ").append(i).append(" soul of the lost user").append((i>1?"s":""));
+                i = 0;
+                for(Pair<String, Long> pair : topViewerPoints){
+                    Long points = pair.getValue();
+                    String user = pair.getKey();
+                    str.append("\n").append("#").append(i+1).append(" ").append(user).append(" ").append((points==null?"null":points)).append(" Soul").append(((points==null?0:points)>1?"s":"")).append(" of the lost");
+                    i++;
+                }
+                sender.sendMessage("<a_twitch_bot_> "+str.toString());
+            }catch (Exception e1){
+                e1.printStackTrace();
+            }
+            /*
             TreeMap<String, Integer> viewerPointsSorted = new TreeMap<>(new ValueComparator(viewerPoints));
             viewerPointsSorted.putAll(viewerPoints);
             ArrayList<Pair<String, Integer>> topViewerPoints = new ArrayList<>();
@@ -736,6 +794,17 @@ public final class Main extends JavaPlugin {
                 }
             }
             sender.sendMessage("<a_twitch_bot_> "+str.toString());
+            */
+        }
+        else if(label.equalsIgnoreCase("start-events")){
+            randomEvent.start();
+            return true;
+        }
+        else if(label.equalsIgnoreCase("force-event")) {
+            synchronized (randomEvent){
+                randomEvent.notify();
+            }
+            return true;
         }
         return false;
     }

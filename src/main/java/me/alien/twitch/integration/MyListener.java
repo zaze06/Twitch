@@ -5,6 +5,7 @@ import com.github.twitch4j.helix.domain.User;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import io.papermc.paper.text.PaperComponents;
+import me.alien.twitch.integration.events.RandomEvent;
 import me.alien.twitch.integration.util.Factorys;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -22,6 +23,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class MyListener implements Listener {
 
@@ -33,6 +35,16 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void onChatMessageEvent(AsyncChatEvent e){
+        if(e.getPlayer().getName().equals(RandomEvent.player.getName()) && RandomEvent.isRunning){
+            String message = PaperComponents.plainTextSerializer().serialize(e.message());
+            if(message.equalsIgnoreCase("exit")){
+                RandomEvent.event.end();
+            }
+            RandomEvent.addData(message);
+            e.setCancelled(true);
+            e.message(Component.text(""));
+            return;
+        }
         if(plugin.isConnected && plugin.chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.CHAT)){
             plugin.twitchClient.getChat().sendMessage(plugin.chat, "<"+e.getPlayer().getName()+"> "+PaperComponents.plainTextSerializer().serialize(e.message()));
         }
@@ -55,32 +67,20 @@ public class MyListener implements Listener {
                     } catch (Exception ignore) {
                     }
                     if (user != null) {
-                        synchronized (plugin.viewerPoints) {
-                            Integer points = plugin.viewerPoints.get(user.getId());
-                            points = (points == null ? 0 : points);
-                            plugin.viewerPoints.put(user.getId(), points + 100);
-                            plugin.getServer().getLogger().info("added " + 100 + " to " + user.getDisplayName() + " now has " + (points + 50));
-                        }
+                        plugin.instance.addPoints(user.getLogin(), 100);
+                        plugin.getServer().getLogger().info("added " + 100 + " to " + user.getDisplayName() + " they now has " + (plugin.instance.getUserPoints(user.getLogin()).getCurrentPoints()));
                     } else {
                         List<User> users = plugin.twitchClient.getHelix().getUsers(plugin.credential.getAccessToken(), null, plugin.twitchClient.getMessagingInterface().getChatters(plugin.chat).execute().getAllViewers()).execute().getUsers();
                         for (User key : users) {
-                            synchronized (plugin.viewerPoints) {
-                                Integer points = plugin.viewerPoints.get(key.getId());
-                                points = (points == null ? 0 : points);
-                                plugin.viewerPoints.put(key.getId(), points + 50);
-                                plugin.getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
-                            }
+                            plugin.instance.addPoints(key.getLogin(), 50);
+                            plugin.getServer().getLogger().info("added " + 50 + " to " + key.getDisplayName() + " they now has " + (plugin.instance.getUserPoints(key.getLogin()).getCurrentPoints()));
                         }
                     }
                 } else {
                     List<User> users = plugin.twitchClient.getHelix().getUsers(plugin.credential.getAccessToken(), null, plugin.twitchClient.getMessagingInterface().getChatters(plugin.chat).execute().getAllViewers()).execute().getUsers();
                     for (User key : users) {
-                        synchronized (plugin.viewerPoints) {
-                            Integer points = plugin.viewerPoints.get(key.getId());
-                            points = (points == null ? 0 : points);
-                            plugin.viewerPoints.put(key.getId(), points + 50);
-                            plugin.getServer().getLogger().info("add " + 50 + " to " + key.getDisplayName() + " now has " + (points + 50));
-                        }
+                        plugin.instance.addPoints(key.getLogin(), 50);
+                        plugin.getServer().getLogger().info("added " + 50 + " to " + key.getDisplayName() + " they now has " + (plugin.instance.getUserPoints(key.getLogin()).getCurrentPoints()));
                     }
                 }
             }
