@@ -5,7 +5,7 @@ env = "PLUGIN"
 
 
 def run(cost, user_name, user, handler, player_pos, odds, redemption):
-    if odds <= 100:
+    if odds <= 25:
         world = handler.getWorld()
         pos = handler.getPlayer().getPos()
 
