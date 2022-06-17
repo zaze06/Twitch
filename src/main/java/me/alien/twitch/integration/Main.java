@@ -802,6 +802,9 @@ public final class Main extends JavaPlugin {
         }
         else if(label.equalsIgnoreCase("force-event")) {
             synchronized (randomEvent){
+                if(args.length > 0){
+                    randomEvent.forceEvent = Integer.parseInt(args[0]);
+                }
                 randomEvent.notify();
             }
             return true;

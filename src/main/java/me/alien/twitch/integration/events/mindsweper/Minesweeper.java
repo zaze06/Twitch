@@ -1,5 +1,6 @@
 package me.alien.twitch.integration.events.mindsweper;
 
+import me.alien.twitch.integration.Main;
 import me.alien.twitch.integration.events.Event;
 import me.alien.twitch.integration.events.PrintHandler;
 import me.alien.twitch.integration.util.Vector2I;
@@ -9,8 +10,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Minesweeper implements Event {
@@ -19,7 +18,7 @@ public class Minesweeper implements Event {
         Minesweeper minesweeper = new Minesweeper(System.out::println);
         Thread t = new Thread(minesweeper::run);
         t.start();
-        minesweeper.addData("r,0,0");
+        //minesweeper.addData("r,0,0");
         while(true){
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
             minesweeper.addData(in.readLine());
@@ -34,8 +33,8 @@ public class Minesweeper implements Event {
     boolean spawnedBombs = false;
 
     public Minesweeper(PrintHandler out){
-        int size = 8;//(int) (Math.random()*(30-4)+4);
-        int bombs = 10;//(int) (Math.random()*(Math.pow(size, 2)-5)+3);
+        int size = (int) (Math.random()*(9-4)+4);
+        int bombs = (int) (Math.random()*(Math.pow(size, 2)-5)+3);
         int trys = 0;
         while(bombs < 0 && trys < 20){
             size = (int) (Math.random()*(16-4)+4);
@@ -92,7 +91,7 @@ public class Minesweeper implements Event {
                 if(!spawnedBombs){
                     int placedBombs = 0;
                     long time = System.currentTimeMillis();
-                    while(placedBombs <= bombs) {
+                    while(placedBombs < bombs) {
                         /*for(Tile t : board){
                             if(placedBombs > bombs) break;
                             if(t.getPos().equals(action.getPos())) continue;
@@ -111,7 +110,7 @@ public class Minesweeper implements Event {
                             placedBombs++;
                         }
                     }
-                    out.print("Took: "+(System.currentTimeMillis()-time)+"ms to place bombs");
+                    Main.plugin.getLogger().info("Took: "+(System.currentTimeMillis()-time)+"ms to place bombs");
                     time = System.currentTimeMillis();
                     for (int x = 0; x < size; x++) {
                         for (int y = 0; y < size; y++) {
@@ -133,9 +132,9 @@ public class Minesweeper implements Event {
                             tile.setNeberingBombs(bombs);
                         }
                     }
-                    out.print("Took: "+(System.currentTimeMillis()-time)+"ms to set nebering bombs number");
-                    print(true);
-                    out.print("\n");
+                    Main.plugin.getLogger().info("Took: "+(System.currentTimeMillis()-time)+"ms to set nebering bombs number");
+                    //print(true);
+                    //out.print("\n");
                     spawnedBombs = true;
                 }
 
@@ -145,8 +144,10 @@ public class Minesweeper implements Event {
                 else if(action.isPlacingFlag() && !tile.isMarked() && !tile.isShowen()) tile.setMarked(true);
                 else if(!action.isPlacingFlag() && tile.isBomb() && !tile.isMarked()) {
                     out.print("you lost!");
+                    tile.setExploded(true);
                     board.forEach(t -> {
                         if(t.isBomb()) t.setShowen(true);
+                        if(!t.isBomb() && t.isMarked()) t.setExploded(true);
                     });
                     print(false);
                     return false;
@@ -158,6 +159,19 @@ public class Minesweeper implements Event {
                         tile.setShowen(true);
                     }
                 }
+                AtomicInteger marked = new AtomicInteger();
+                AtomicInteger nonMarked = new AtomicInteger();
+                board.forEach(t -> {
+                    if(t.isBomb() && t.isMarked()) marked.getAndIncrement();
+                    if(t.isBomb() && !t.isMarked()) nonMarked.getAndIncrement();
+                });
+
+                if(nonMarked.get()==0) {
+                    out.print("You Won!");
+                    print(true);
+                    return true;
+                }
+
                 out.print("You have "+markedTiles()+"/"+bombs+" marked(a marked tile dosen't mean its a bomb tile)");
             }catch (Exception ignored){
 
@@ -177,8 +191,9 @@ public class Minesweeper implements Event {
         if(tile == null) return false;
         if(!tile.isShowen()&&!tile.isBomb()&&!tile.isMarked()){
             tile.setShowen(true);
-            for(int x1 = x-1; x1 <= 1; x1++){
-                for(int y1 = y-1; y1 <= 1; y1++){
+            if(tile.getNeberingBombs()>0) return true;
+            for(int x1 = x-1; x1 <= x+1; x1++){
+                for(int y1 = y-1; y1 <= y+1; y1++){
                     checkTile(x1, y1);
                 }
             }
@@ -187,9 +202,13 @@ public class Minesweeper implements Event {
     }
 
     private void print(boolean overWriteShow) {
-        StringBuilder builder = new StringBuilder("\n");
-
+        StringBuilder builder = new StringBuilder("\n  ");
+        for(int y = 0; y < size; y++){
+            builder.append(y);
+        }
+        builder.append("\n");
         for(int x = 0; x < size; x++){
+            builder.append(x).append(" ");
             for(int y = 0; y < size; y++){
                 Vector2I pos = new Vector2I(x,y);
                 Tile tile = board.stream().filter(t -> t.getPos().equals(pos)).toList().get(0);
@@ -198,11 +217,16 @@ public class Minesweeper implements Event {
                 else if(tile.isBomb() && tile.isExploded()) builder.append("#");
                 else if((tile.isShowen() || overWriteShow)) {
                     int neberingBombs = tile.getNeberingBombs();
-                    builder.append(neberingBombs == 0?"-":neberingBombs);
+                    builder.append(neberingBombs == 0?"_":neberingBombs);
                 }
-                else builder.append(" ");
+                else builder.append("-");
             }
+            builder.append(" ").append(x);
             builder.append("\n");
+        }
+        builder.append("  ");
+        for(int y = 0; y < size; y++){
+            builder.append(y);
         }
         out.print(builder.toString());
     }
@@ -229,7 +253,7 @@ public class Minesweeper implements Event {
             }
         }
 
-        return new Action(placingFlag, new Vector2I(Integer.parseInt(xStr.toString()), Integer.parseInt(yStr.toString())));
+        return new Action(placingFlag, new Vector2I(Integer.parseInt(yStr.toString()), Integer.parseInt(xStr.toString())));
     }
 
     public int markedTiles(){

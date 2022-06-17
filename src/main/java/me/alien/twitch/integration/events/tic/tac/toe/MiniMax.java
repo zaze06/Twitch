@@ -3,7 +3,7 @@ package me.alien.twitch.integration.events.tic.tac.toe;
 import static me.alien.twitch.integration.events.tic.tac.toe.Mark.*;
 
 public class MiniMax {
-    private static final int MAX_DEPTH = 6;
+    private static final int MAX_DEPTH = 2;
 
     /**
      * Play moves on the board alternating between playing as X and O analysing

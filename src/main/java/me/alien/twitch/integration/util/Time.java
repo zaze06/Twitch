@@ -78,11 +78,11 @@ public class Time {
         return sec + toMin()*60;
     }
 
-    private long toMin() {
+    public long toMin() {
         return min + toHour()*60;
     }
 
-    private long toHour() {
+    public long toHour() {
         return hour;
     }
 }
