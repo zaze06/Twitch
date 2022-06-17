@@ -16,6 +16,8 @@ public class TicTacToe /*extends Thread*/ implements Event {
     public static void main(String[] args) throws IOException {
         TicTacToe main = new TicTacToe(System.out::println);
         main.print();
+        Thread t = new Thread(main::run);
+        t.start();
         //main.start();
         while(true){
             BufferedReader in = new BufferedReader(new InputStreamReader(System.in));

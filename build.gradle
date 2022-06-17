@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'Alien'
-version = '3.8'
+version = '4.0'
 
 repositories {
     mavenCentral()
@@ -35,7 +35,7 @@ dependencies {
     implementation (name: 'jython-standalone-2.7.2', ext: 'jar')
     implementation 'com.github.TheLimeGlass:StreamElements-Java-API:Beta-1'
 
-    compileOnly 'io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
 }
 
 def targetJavaVersion = 17
@@ -59,7 +59,7 @@ tasks {
         // Configure the Minecraft version for our task.
         // This is the only required configuration besides applying the plugin.
         // Your plugin's jar (or shadowJar if present) will be used automatically.
-        minecraftVersion("1.18.2")
+        minecraftVersion("1.19")
     }
 }
 

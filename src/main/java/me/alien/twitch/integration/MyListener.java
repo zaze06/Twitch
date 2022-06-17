@@ -9,6 +9,7 @@ import me.alien.twitch.integration.events.RandomEvent;
 import me.alien.twitch.integration.util.Factorys;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -35,8 +36,12 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void onChatMessageEvent(AsyncChatEvent e){
-        if(e.getPlayer().getName().equals(RandomEvent.player.getName()) && RandomEvent.isRunning){
-            String message = PaperComponents.plainTextSerializer().serialize(e.message());
+        boolean isEventPlayer = false;
+        if(RandomEvent.player != null){
+            isEventPlayer = e.getPlayer().getName().equals(RandomEvent.player.getName());
+        }
+        if(isEventPlayer && RandomEvent.isRunning){
+            String message = PlainTextComponentSerializer.plainText().serialize(e.message());
             if(message.equalsIgnoreCase("exit")){
                 RandomEvent.event.end();
             }
@@ -46,20 +51,20 @@ public class MyListener implements Listener {
             return;
         }
         if(plugin.isConnected && plugin.chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.CHAT)){
-            plugin.twitchClient.getChat().sendMessage(plugin.chat, "<"+e.getPlayer().getName()+"> "+PaperComponents.plainTextSerializer().serialize(e.message()));
+            plugin.twitchClient.getChat().sendMessage(plugin.chat, "<"+e.getPlayer().getName()+"> "+ PlainTextComponentSerializer.plainText().serialize(e.message()));
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeathEvent(PlayerDeathEvent e) {
         if (plugin.isConnected && plugin.chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.INFO) && e.deathMessage() != null) {
-            plugin.twitchClient.getChat().sendMessage(plugin.chat, PaperComponents.plainTextSerializer().serialize(e.deathMessage()));
+            plugin.twitchClient.getChat().sendMessage(plugin.chat, PlainTextComponentSerializer.plainText().serialize(e.deathMessage()));
         }
         if(e.getPlayer().getLastDamageCause() instanceof EntityDamageByEntityEvent e1) {
             if (e1.getDamager() instanceof LivingEntity killer) {
                 Component component = killer.customName();
                 if (component != null) {
-                    String cName = PaperComponents.plainTextSerializer().serialize(component);
+                    String cName = PlainTextComponentSerializer.plainText().serialize(component);
                     User user = null;
                     try {
                         user = plugin.twitchClient.getHelix().getUsers(plugin.credential.getAccessToken(), null, Collections.singletonList(cName)).execute().getUsers().get(0);
