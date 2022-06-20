@@ -1,6 +1,7 @@
 package me.alien.twitch.integration.events;
 
 import me.alien.twitch.integration.Main;
+import me.alien.twitch.integration.events.maze.explotion.ExploadingMaze;
 import me.alien.twitch.integration.events.mindsweper.Minesweeper;
 import me.alien.twitch.integration.events.tic.tac.toe.TicTacToe;
 import me.alien.twitch.integration.util.Time;
@@ -17,7 +18,7 @@ public class RandomEvent extends Thread{
     }
     public static Player player;
     public static boolean isRunning = false;
-    public Class<? extends Event>[] events = new Class[]{TicTacToe.class, Minesweeper.class};
+    public Class<? extends Event>[] events = new Class[]{TicTacToe.class, Minesweeper.class, ExploadingMaze.class};
 
 
     public static void addData(Object data){

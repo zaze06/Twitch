@@ -1,0 +1,279 @@
+{
+  "WEAPON": {
+    "WOODEN_SWORD": {
+      "attackDamage": 3.0,
+      "attackSpeed": -2.4,
+      "tool": "WOOD"
+    },
+    "DIAMOND_SWORD": {
+      "attackDamage": 6.0,
+      "attackSpeed": -2.4,
+      "tool": "DIAMOND"
+    },
+    "IRON_SWORD": {
+      "attackDamage": 5.0,
+      "attackSpeed": -2.4,
+      "tool": "IRON"
+    },
+    "GOLDEN_SWORD": {
+      "attackDamage": 3.0,
+      "attackSpeed": -2.4,
+      "tool": "GOLD"
+    },
+    "NETHERITE_SWORD": {
+      "attackDamage": 7.0,
+      "attackSpeed": -2.4,
+      "tool": "NETHERITE"
+    },
+    "STONE_SWORD": {
+      "attackDamage": 4.0,
+      "attackSpeed": -2.4,
+      "tool": "STONE"
+    },
+    "WOODEN_AXE": {
+      "attackDamage": 6.0,
+      "attackSpeed": -3.0,
+      "tool": "WOOD"
+    },
+    "STONE_AXE": {
+      "attackDamage": 8.0,
+      "attackSpeed": -3.0,
+      "tool": "STONE"
+    },
+    "DIAMOND_AXE": {
+      "attackDamage": 9.0,
+      "attackSpeed": -3.1,
+      "tool": "DIAMOND"
+    },
+    "GOLDEN_AXE": {
+      "attackDamage": 6.0,
+      "attackSpeed": -3.0,
+      "tool": "GOLD"
+    },
+    "IRON_AXE": {
+      "attackDamage": 8.0,
+      "attackSpeed": -3.1,
+      "tool": "IRON"
+    },
+    "TRIDENT": {
+      "attackDamage": 8.0,
+      "attackSpeed": -2.9,
+      "tool": "TRIDENT"
+    },
+    "WOODEN_HOE": {
+      "attackDamage": 0.0,
+      "attackSpeed": -3.0,
+      "tool": "WOOD"
+    },
+    "STONE_HOE": {
+      "attackDamage": 1.0,
+      "attackSpeed": -2.0,
+      "tool": "STONE"
+    },
+    "DIAMOND_HOE": {
+      "attackDamage": 3.0,
+      "attackSpeed": 0.0,
+      "tool": "DIAMOND"
+    },
+    "NETHERITE_HOE": {
+      "attackDamage": 3.0,
+      "attackSpeed": 0.0,
+      "tool": "NETHERITE"
+    },
+    "GOLDEN_HOE": {
+      "attackDamage": 0.0,
+      "attackSpeed": -3.0,
+      "tool": "GOLD"
+    },
+    "IRON_HOE": {
+      "attackDamage": 2.0,
+      "attackSpeed": -1.0,
+      "tool": "IRON"
+    },
+    "IRON_PICKAXE": {
+      "attackDamage": 3.0,
+      "attackSpeed": -2.8,
+      "tool": "IRON"
+    },
+    "WOODEN_PICKAXE": {
+      "attackDamage": 1.0,
+      "attackSpeed": -2.8,
+      "tool": "WOOD"
+    },
+    "GOLDEN_PICKAXE": {
+      "attackDamage": 1.0,
+      "attackSpeed": -2.8,
+      "tool": "GOLD"
+    },
+    "DIAMOND_PICKAXE": {
+      "attackDamage": 4.0,
+      "attackSpeed": -2.8,
+      "tool": "DIAMOND"
+    },
+    "STONE_PICKAXE": {
+      "attackDamage": 2.0,
+      "attackSpeed": -2.8,
+      "tool": "STONE"
+    },
+    "NETHERITE_PICKAXE": {
+      "attackDamage": 5.0,
+      "attackSpeed": -2.8,
+      "tool": "NETHERITE"
+    },
+    "NETHERITE_SHOVEL": {
+      "attackDamage": 5.5,
+      "attackSpeed": -3.0,
+      "tool": "NETHERITE"
+    },
+    "DIAMOND_SHOVEL": {
+      "attackDamage": 4.5,
+      "attackSpeed": -3.0,
+      "tool": "DIAMOND"
+    },
+    "IRON_SHOVEL": {
+      "attackDamage": 3.5,
+      "attackSpeed": -3.0,
+      "tool": "IRON"
+    },
+    "STONE_SHOVEL": {
+      "attackDamage": 2.5,
+      "attackSpeed": -3.0,
+      "tool": "STONE"
+    },
+    "GOLDEN_SHOVEL": {
+      "attackDamage": 1.5,
+      "attackSpeed": -3.0,
+      "tool": "GOLD"
+    },
+    "WOODEN_SHOVEL": {
+      "attackDamage": 1.5,
+      "attackSpeed": -3.0,
+      "tool": "WOOD"
+    }
+  },
+  "ARMOR": {
+    "FEET": {
+      "IRON_BOOTS": {
+        "armor": 2.0,
+        "armorToughness": 0.0,
+        "tool": "IRON"
+      },
+      "DIAMOND_BOOTS": {
+        "armor": 3.0,
+        "armorToughness": 2.0,
+        "tool": "DIAMOND"
+      },
+      "LEATHER_BOOTS": {
+        "armor": 1.0,
+        "armorToughness": 0.0,
+        "tool": "LEATHER"
+      },
+      "NETHERITE_BOOTS": {
+        "armor": 3.0,
+        "armorToughness": 3.0,
+        "tool": "NETHERITE"
+      },
+      "GOLDEN_BOOTS": {
+        "armor": 1.0,
+        "armorToughness": 0.0,
+        "tool": "GOLD"
+      },
+      "CHAINMAIL_BOOTS": {
+        "armor": 1.0,
+        "armorToughness": 0.0,
+        "tool": "CHAIN_MAIL"
+      }
+    },
+    "LEGS": {
+      "DIAMOND_LEGGINGS": {
+        "armor": 6.0,
+        "armorToughness": 2.0,
+        "tool": "DIAMOND"
+      },
+      "GOLDEN_LEGGINGS": {
+        "armor": 3.0,
+        "armorToughness": 0.0,
+        "tool": "GOLD"
+      },
+      "LEATHER_LEGGINGS": {
+        "armor": 2.0,
+        "armorToughness": 0.0,
+        "tool": "LEATHER"
+      },
+      "IRON_LEGGINGS": {
+        "armor": 5.0,
+        "armorToughness": 0.0,
+        "tool": "IRON"
+      },
+      "NETHERITE_LEGGINGS": {
+        "armor": 8.0,
+        "armorToughness": 3.0,
+        "tool": "NETHERITE"
+      },
+      "CHAINMAIL_LEGGINGS": {
+        "armor": 4.0,
+        "armorToughness": 0.0,
+        "tool": "CHAIN_MAIL"
+      }
+    },
+    "CHEST": {
+      "IRON_CHESTPLATE": {
+        "armor": 6.0,
+        "armorToughness": 0.0,
+        "tool": "IRON"
+      },
+      "LEATHER_CHESTPLATE": {
+        "armor": 3.0,
+        "armorToughness": 0.0,
+        "tool": "LEATHER"
+      },
+      "DIAMOND_CHESTPLATE": {
+        "armor": 6.0,
+        "armorToughness": 3.0,
+        "tool": "DIAMOND"
+      },
+      "GOLDEN_CHESTPLATE": {
+        "armor": 5.0,
+        "armorToughness": 0.0,
+        "tool": "GOLD"
+      },
+      "CHAINMAIL_CHESTPLATE": {
+        "armor": 5.0,
+        "armorToughness": 0.0,
+        "tool": "CHAIN_MAIL"
+      }
+    },
+    "HEAD": {
+      "LEATHER_HELMET": {
+        "armor": 1.0,
+        "armorToughness": 0.0,
+        "tool": "LEATHER"
+      },
+      "TURTLE_HELMET": {
+        "armor": 2.0,
+        "armorToughness": 0.0,
+        "tool": "TURTLE"
+      },
+      "IRON_HELMET": {
+        "armor": 2.0,
+        "armorToughness": 0.0,
+        "tool": "IRON"
+      },
+      "DIAMOND_HELMET": {
+        "armor": 3.0,
+        "armorToughness": 3.0,
+        "tool": "DIAMOND"
+      },
+      "GOLDEN_HELMET": {
+        "armor": 2.0,
+        "armorToughness": 0.0,
+        "tool": "GOLD"
+      },
+      "CHAINMAIL_HELMET": {
+        "armor": 2.0,
+        "armorToughness": 0.0,
+        "tool": "CHAIN_MAIL"
+      }
+    }
+  }
+}

@@ -45,6 +45,7 @@ public final class Main extends JavaPlugin {
 
     private final JSONObject credentials = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/credentials.json")));
     public final JSONObject redemptions = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/redemtions.json")));
+    public static final JSONObject TOOLS = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/tools.json")));
     public TwitchClient twitchClient;
     public StreamElements instance;
     public final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));

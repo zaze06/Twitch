@@ -1,5 +1,7 @@
 package me.alien.twitch.integration.util;
 
+import org.bukkit.Material;
+
 import java.util.Collection;
 import java.util.function.Predicate;
 
@@ -11,5 +13,9 @@ public class Util {
             }
         }
         return null;
+    }
+
+    public static boolean isTool(Material itemType){
+        return (itemType == Material.DIAMOND_SWORD || itemType == Material.GOLDEN_SWORD || itemType == Material.IRON_SWORD || itemType == Material.NETHERITE_SWORD);
     }
 }

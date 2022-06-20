@@ -24,6 +24,9 @@ repositories {
     maven {
         url 'https://jitpack.io'
     }
+    maven {
+        url 'https://repo.codemc.org/repository/maven-public/'
+    }
 }
 
 dependencies {
@@ -34,6 +37,7 @@ dependencies {
     //implementation (name:'rhino-1.7.14', ext:'jar')
     implementation (name: 'jython-standalone-2.7.2', ext: 'jar')
     implementation 'com.github.TheLimeGlass:StreamElements-Java-API:Beta-1'
+    implementation "io.github.bananapuncher714:nbteditor:7.18.3"
 
     compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
 }

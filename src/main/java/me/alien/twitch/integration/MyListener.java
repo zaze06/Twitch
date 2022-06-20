@@ -5,6 +5,7 @@ import com.github.twitch4j.helix.domain.User;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import io.papermc.paper.text.PaperComponents;
+import me.alien.twitch.integration.custome.combat.Base;
 import me.alien.twitch.integration.events.RandomEvent;
 import me.alien.twitch.integration.util.Factorys;
 import net.kyori.adventure.text.Component;
@@ -19,12 +20,16 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.json.JSONObject;
 
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import static me.alien.twitch.integration.Main.TOOLS;
 
 public class MyListener implements Listener {
 
@@ -118,7 +123,7 @@ public class MyListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOW)
     public void onAttack(EntityDamageByEntityEvent e){
         int d20 = (int)(Math.random()*19)+1;
         if(d20 >= 15){
@@ -136,4 +141,20 @@ public class MyListener implements Listener {
             e.setCancelled(true);
         }
     }
+
+    //@EventHandler(priority = EventPriority.LOWEST)
+    public void onCraft(CraftItemEvent e){
+        Material type = e.getRecipe().getResult().getType();
+        boolean isTool = false;
+        for(String name : TOOLS.keySet()){
+            if(type.equals(Material.getMaterial(name))){
+                isTool = true;
+                break;
+            }
+        }
+        if(!isTool) return;
+        Base.handle(e.getRecipe().getResult());
+    }
+
+
 }
