@@ -1,6 +1,6 @@
-name: Twitch
+name: Yello
 version: '${version}'
-main: me.alien.twitch.integration.Main
+main: me.alien.yello.integration.Main
 api-version: 1.19
 authors: [ Alien ]
 

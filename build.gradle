@@ -31,15 +31,21 @@ repositories {
 
 dependencies {
 
-    implementation 'com.github.twitch4j:twitch4j:1.9.0'
+    implementation 'com.github.twitch4j:twitch4j:1.10.0'
     implementation 'org.json:json:20220320'
-    implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.4'
-    //implementation (name:'rhino-1.7.14', ext:'jar')
     implementation (name: 'jython-standalone-2.7.2', ext: 'jar')
     implementation 'com.github.TheLimeGlass:StreamElements-Java-API:Beta-1'
     implementation "io.github.bananapuncher714:nbteditor:7.18.3"
+    implementation 'org.deeplearning4j:deeplearning4j-core:1.0.0-M2'
+    implementation 'org.deeplearning4j:deeplearning4j-ui:1.0.0-M2'
+    implementation group: 'org.nd4j', name: 'nd4j-native-platform', version: '1.0.0-M2'
+    //implementation 'org.nd4j:nd4j-backends:1.0.0-M2'
 
     compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
+}
+
+properties{
+
 }
 
 def targetJavaVersion = 17
