@@ -1,6 +1,9 @@
 from shared import *
 
-redemptionId = "b7615235-3510-4ba9-a9e7-20ad3725f073"
+redemptionId = [
+    "b7615235-3510-4ba9-a9e7-20ad3725f073",
+    "8f1929f0-1d13-4a2d-834b-67e3d936cc2e"
+]
 env = "PLUGIN"
 
 

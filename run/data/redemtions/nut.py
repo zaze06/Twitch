@@ -1,7 +1,9 @@
 import random
 from shared import *
 
-redemptionId = "31702460-3cf4-4576-a299-fe712a1123d2"
+redemptionId = [
+    "31702460-3cf4-4576-a299-fe712a1123d2"
+]
 env = "PLUGIN"
 
 

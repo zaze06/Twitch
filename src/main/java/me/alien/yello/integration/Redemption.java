@@ -16,10 +16,14 @@ import org.bukkit.block.data.type.Door;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 import org.python.core.*;
 import org.python.util.PythonInterpreter;
 
 import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Redemption extends Thread {
 
@@ -87,6 +91,8 @@ public class Redemption extends Thread {
                 plugin.twitchClient.getChat().sendPrivateMessage("AlienFromDia", odds + "");
             }
 
+            boolean failed = true;
+
             for(String redemtion : plugin.readmeEventAction) {
                 try {
                     PythonInterpreter pi =  new PythonInterpreter();
@@ -98,17 +104,19 @@ public class Redemption extends Thread {
                     imp.createFromCode("shared", pi.compile(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n")));
                     //imp.load(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
                     pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/" + redemtion), "\n"));
-                    String actionId = "";
+                    AtomicBoolean redemtionID = new AtomicBoolean(false);
+                    AtomicBoolean redemtionName = new AtomicBoolean(false);
                     try{
                         PyObject obj = pi.get("redemptionId");
                         if(obj == null){
                             throw new NullPointerException();
                         }
-                        String str = (String) obj.__tojava__(String.class);
-                        if(str == null){
-                            throw new NullPointerException();
-                        }
-                        actionId = str;
+                        ArrayList<String> strs = new ArrayList<>(List.of((String[]) obj.__tojava__(String[].class)));
+                        strs.forEach(str -> {
+                            if(str.equals(id)){
+                                redemtionID.set(true);
+                            }
+                        });
                     }catch (Exception ignored){}
                     String name = "";
                     try{
@@ -116,15 +124,16 @@ public class Redemption extends Thread {
                         if(obj == null){
                             throw new NullPointerException();
                         }
-                        String str = (String) obj.__tojava__(String.class);
-                        if(str == null){
-                            throw new NullPointerException();
-                        }
-                        name = str;
+                        ArrayList<String> strs = new ArrayList<>(List.of((String[]) obj.__tojava__(String[].class)));
+                        strs.forEach(str -> {
+                            if(str.equals(event.getRedemption().getReward().getTitle())){
+                                redemtionName.set(true);
+                            }
+                        });
                     }catch (Exception ignored){}
 
                     Envierment env = Envierment.valueOf((String) pi.get("env").__tojava__(String.class));
-                    if((actionId.equals(id) || name.equals(event.getRedemption().getReward().getTitle())) && (env == Envierment.PLUGIN || env == Envierment.BOTH) && !plugin.grace){
+                    if((redemtionID.get() || redemtionName.get()) && (env == Envierment.PLUGIN || env == Envierment.BOTH) && !plugin.grace){
                         plugin.getLogger().info("Found "+redemtion);
                         pi.get("run").__call__(new PyObject[]{
                                 new PyLong(cost),
@@ -135,6 +144,7 @@ public class Redemption extends Thread {
                                 new PyInteger(odds),
                                 Py.java2py(event.getRedemption())
                         });
+                        failed = false;
                     }
                 }catch (Exception e){
                     e.printStackTrace();
@@ -164,6 +174,21 @@ public class Redemption extends Thread {
                     throw new RuntimeException(e);
                 }
                 */
+            }
+
+            if(failed){
+                if(id.equals("b184ce9e-1032-46bd-a475-1e93c60f4972")){
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        p.getWorld().spawn(pos, Arrow.class, CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            Vector voc = p.getVelocity().clone();
+                            Vector velocity = new Vector(voc.getX()*2, voc.getY()*2, voc.getZ()*2);
+                            e.setVelocity(velocity);
+                        });
+                    });
+                }
+                else if(id.equals("0f44c4f9-1000-4867-844e-ade303564e7c")){
+
+                }
             }
 
             if(false) {

@@ -9,7 +9,9 @@ from shared import *
 # Required variables:
 # redemptionId: this is the id of the redemption this will handel. substitute use redemptionName
 # (note this is not reliable since the name can change)
-redemptionId = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+redemptionId = [
+    "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+]
 # redemptionName: this si the name of the redemption this will handle. it's better to use the redemptionId instead
 redemptionName = "XXXX"
 # env: this is the environment which is where this redemption handel can be used possible assignments:

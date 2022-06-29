@@ -2,7 +2,9 @@ import random
 from shared import *
 
 env = "PLUGIN"
-redemptionId = "3c8cb475-ece9-4003-89f0-2e881eec95f0"
+redemptionId = [
+    "3c8cb475-ece9-4003-89f0-2e881eec95f0"
+]
 potion = ["BLINDNESS", "POISON", "BAD_OMEN", "WITHER"]
 
 

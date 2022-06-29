@@ -1,5 +1,6 @@
 package me.alien.yello.integration;
 
+import me.alien.yello.integration.custome.combat.Base;
 import me.alien.yello.integration.events.RandomEvent;
 import me.alien.yello.integration.util.Factorys;
 import me.alien.yello.integration.util.ValueComparator;
@@ -18,13 +19,16 @@ import me.limeglass.streamelements.api.StreamElements;
 import me.limeglass.streamelements.api.StreamElementsBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Team;
@@ -153,7 +157,7 @@ public final class Main extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new MyListener(this), this);
 
-        twitchClient = TwitchClientBuilder.builder()
+        /*twitchClient = TwitchClientBuilder.builder()
                 .withEnableChat(true)
                 .withEnablePubSub(true)
                 .withEnableHelix(true)
@@ -166,7 +170,7 @@ public final class Main extends JavaPlugin {
                 .withAccountID(credentials.getJSONObject("SE").getString("channel"))
                 .withToken(credentials.getJSONObject("SE").getString("token"))
                 .withConnectionTimeout(10000)
-                .build();
+                .build();*/
 
         config.addDefault("ChargedCreeperOdds", 5);
         config.addDefault("CreeperOdds", 40);
@@ -811,6 +815,18 @@ public final class Main extends JavaPlugin {
         }
         else if(label.equalsIgnoreCase("combat")){
             combat = !combat;
+            sender.sendMessage("Custom combat is now "+(combat?"enabled":"disable"));
+            return true;
+        }
+        else if(label.equalsIgnoreCase("test")){
+            if(sender instanceof Player p){
+                try{
+                    int i = Integer.parseInt(args[0]);
+                    ItemStack stack = new ItemStack(Material.DIAMOND_SWORD);
+                    Base.handle(stack, i);
+                    p.getInventory().addItem(stack);
+                }catch (Exception ignored){}
+            }
         }
         return false;
     }

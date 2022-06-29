@@ -1,20 +1,26 @@
 package me.alien.yello.integration;
 
 import com.github.twitch4j.helix.domain.User;
+import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.alien.yello.integration.custome.combat.Base;
 import me.alien.yello.integration.events.RandomEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
@@ -22,6 +28,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Random;
 
 import static me.alien.yello.integration.Main.TOOLS;
 
@@ -140,7 +148,7 @@ public class MyListener implements Listener {
     public void onCraft(CraftItemEvent e){
         Material type = e.getRecipe().getResult().getType();
         boolean isTool = false;
-        for(String name : TOOLS.keySet()){
+        for(String name : TOOLS.getJSONObject("WEAPON").keySet()){
             if(type.equals(Material.getMaterial(name))){
                 isTool = true;
                 break;
@@ -154,7 +162,7 @@ public class MyListener implements Listener {
     public void onItemPickUp(PlayerAttemptPickupItemEvent e){
         Material type = e.getItem().getItemStack().getType();
         boolean isTool = false;
-        for(String name : TOOLS.keySet()){
+        for(String name : TOOLS.getJSONObject("WEAPON").keySet()){
             if(type.equals(Material.getMaterial(name))){
                 isTool = true;
                 break;
@@ -162,5 +170,24 @@ public class MyListener implements Listener {
         }
         if(!isTool) return;
         Base.handle(e.getItem().getItemStack());
+    }
+
+    @EventHandler
+    public void onEntitySpawn(EntitySpawnEvent e){
+        if(e.getEntity() instanceof Phantom phantom){
+            long time = phantom.getWorld().getGameTime();
+            Random rand = new Random(time);
+            int odds = rand.nextInt(100);
+            if(odds > 30){
+                phantom.setSize(odds/10+3);
+                setHp(phantom, odds);
+                phantom.setShouldBurnInDay(false);
+            }
+        }
+    }
+
+    private void setHp(LivingEntity e, int hp) {
+        Objects.requireNonNull(e.getAttribute(Attribute.GENERIC_MAX_HEALTH)).setBaseValue(hp);
+        e.setHealth(hp);
     }
 }

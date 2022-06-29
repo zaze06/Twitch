@@ -3,13 +3,6 @@ package me.alien.yello.integration.events.noughts.and.crosses;
 import me.alien.yello.integration.events.Event;
 import me.alien.yello.integration.events.PrintHandler;
 import me.alien.yello.integration.util.Vector2I;
-import org.deeplearning4j.nn.api.OptimizationAlgorithm;
-import org.deeplearning4j.nn.conf.BackpropType;
-import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
-import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
-import org.deeplearning4j.nn.weights.WeightInit;
-import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.learning.config.Sgd;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,22 +14,12 @@ public class NoughtsAndCrosses implements Event {
     PrintHandler out;
     final ArrayList<Object> data = new ArrayList<>();
     ArrayList<Tile> map = new ArrayList<>();
-    MultiLayerConfiguration conf;
 
     public NoughtsAndCrosses(PrintHandler out) {
         this.out = out;
         out.print("You will be playing a game of noughts and crosses");
         out.print("You will be playing on a 20x20 board");
         out.print("Good lock!");
-        conf = new NeuralNetConfiguration.Builder()
-                .weightInit(WeightInit.XAVIER)
-                .activation(Activation.RELU)
-                .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-                .updater(new Sgd(0.05))
-                // ... other hyperparameters
-                .list()
-                .backpropType(BackpropType.Standard)
-                .build();
 
     }
 

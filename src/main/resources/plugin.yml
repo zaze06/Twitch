@@ -23,3 +23,7 @@ commands:
     description: "forces an event to run"
   start-events:
     description: "Starts the event handler"
+  combat:
+    description: "enables/disables costume combat system"
+  test:
+    description: "a test command misc action"
