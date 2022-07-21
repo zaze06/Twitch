@@ -1,6 +1,6 @@
 name: Yello
 version: '${version}'
-main: me.alien.yello.integration.Main
+main: me.alien.yello.Main
 api-version: 1.19
 authors: [ Alien ]
 
