@@ -3,27 +3,3 @@ version: '${version}'
 main: me.alien.yello.Main
 api-version: 1.19
 authors: [ Alien ]
-
-commands:
-  connect:
-    description: "start waithing and listing on a twitch chat"
-  disconnect:
-    description: "disconnects from the stream"
-  send:
-    description: "send a message from minecraft"
-  chat:
-    description: "connect twitch chat to minecraft or minecraft chat to twitch"
-  spawn:
-    description: ""
-  grace:
-    description: "adds a grace period for <min>"
-  points:
-    description: "Gives a top 10 list of users and there points"
-  force-event:
-    description: "forces an event to run"
-  start-events:
-    description: "Starts the event handler"
-  combat:
-    description: "enables/disables costume combat system"
-  test:
-    description: "a test command misc action"

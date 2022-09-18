@@ -1,5 +1,6 @@
 package me.alien.yello.events.maze.explotion;
 
+import me.alien.yello.Main;
 import me.alien.yello.events.Event;
 import me.alien.yello.events.PrintHandler;
 import me.alien.yello.events.RandomEvent;
@@ -20,11 +21,11 @@ public class ExploadingMaze implements Event {
 
         int[][] map = maze.getIntMaze();
 
-        int x = (int) (Math.random() * map.length);
-        int y = (int) (Math.random() * map[x].length);
+        int x = (int) (Main.rand.nextDouble() * map.length);
+        int y = (int) (Main.rand.nextDouble() * map[x].length);
         while(map[x][y] != 0){
-            x = (int) (Math.random() * map.length);
-            y = (int) (Math.random() * map[x].length);
+            x = (int) (Main.rand.nextDouble() * map.length);
+            y = (int) (Main.rand.nextDouble() * map[x].length);
         }
         map[x][y] = 2;
 
@@ -49,18 +50,18 @@ public class ExploadingMaze implements Event {
 
         int[][] map = maze.getIntMaze();
 
-        int x = (int) (Math.random() * map.length-1);
-        int z = (int) (Math.random() * map[x].length-1);
+        int x = (int) (Main.rand.nextDouble() * map.length-1);
+        int z = (int) (Main.rand.nextDouble() * map[x].length-1);
         while(map[x][z] != 0){
-            x = (int) (Math.random() * map.length-1);
-            z = (int) (Math.random() * map[x].length-1);
+            x = (int) (Main.rand.nextDouble() * map.length-1);
+            z = (int) (Main.rand.nextDouble() * map[x].length-1);
         }
         //map[x][z] = 2;
-        switch ((int) (Math.random() * 3) + 1) {
-            case 1 -> map[0][(int) (Math.random() * map[0].length - 1)] = 0;
-            case 2 -> map[(int) (Math.random() * map.length - 1)][0] = 0;
-            case 3 -> map[map.length - 1][(int) (Math.random() * map[0].length - 1)] = 0;
-            case 4 -> map[(int) (Math.random() * map.length - 1)][map[0].length - 1] = 0;
+        switch ((int) (Main.rand.nextDouble() * 3) + 1) {
+            case 1 -> map[0][(int) (Main.rand.nextDouble() * map[0].length - 1)] = 0;
+            case 2 -> map[(int) (Main.rand.nextDouble() * map.length - 1)][0] = 0;
+            case 3 -> map[map.length - 1][(int) (Main.rand.nextDouble() * map[0].length - 1)] = 0;
+            case 4 -> map[(int) (Main.rand.nextDouble() * map.length - 1)][map[0].length - 1] = 0;
         }
 
         double finalX = x;

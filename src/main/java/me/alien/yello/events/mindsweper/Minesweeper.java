@@ -33,12 +33,12 @@ public class Minesweeper implements Event {
     boolean spawnedBombs = false;
 
     public Minesweeper(PrintHandler out){
-        int size = (int) (Math.random()*(9-4)+4);
-        int bombs = (int) (Math.random()*(Math.pow(size, 2)-5)+3);
+        int size = (int) (Main.rand.nextDouble()*(9-4)+4);
+        int bombs = (int) (Main.rand.nextDouble()*(Math.pow(size, 2)-5)+3);
         int trys = 0;
         while(bombs < 0 && trys < 20){
-            size = (int) (Math.random()*(16-4)+4);
-            bombs = (int) (Math.random()*(Math.pow(size, 2)-5)+3);
+            size = (int) (Main.rand.nextDouble()*(16-4)+4);
+            bombs = (int) (Main.rand.nextDouble()*(Math.pow(size, 2)-5)+3);
             trys++;
         }
         if(trys > 19){
@@ -95,14 +95,14 @@ public class Minesweeper implements Event {
                         /*for(Tile t : board){
                             if(placedBombs > bombs) break;
                             if(t.getPos().equals(action.getPos())) continue;
-                            if(Math.random() >= 0.5 && !t.isBomb()){
+                            if(Main.rand.nextDouble() >= 0.5 && !t.isBomb()){
                                 t.setBomb(true);
                                 placedBombs++;
 
                             }
                         }*/
-                        int x = (int) (Math.random()*size);
-                        int y = (int) (Math.random()*size);
+                        int x = (int) (Main.rand.nextDouble()*size);
+                        int y = (int) (Main.rand.nextDouble()*size);
                         Vector2I pos = new Vector2I(x,y);
                         Tile tile = board.stream().filter(t -> t.getPos().equals(pos)).toList().get(0);
                         if(!tile.isBomb() && !action.getPos().equals(pos)){

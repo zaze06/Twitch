@@ -21,7 +21,7 @@ public class Factorys {
 
         ChannelPointsRedemption fakeRedemption = new ChannelPointsRedemption();
         fakeRedemption.setId(redemptionId);
-        fakeRedemption.setChannelId(plugin.channelId);
+        fakeRedemption.setChannelId(Main.credentials.getString("channel_ID"));
         fakeRedemption.setUser(cpu);
         fakeRedemption.setReward(cpr);
 

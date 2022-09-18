@@ -11,8 +11,9 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
 import java.util.Set;
+
+import static me.alien.yello.util.RomanNumber.toRoman;
 
 public class LifeSteal extends Enchantment {
     public LifeSteal(@NotNull NamespacedKey key) {
@@ -61,7 +62,7 @@ public class LifeSteal extends Enchantment {
 
     @Override
     public @NotNull Component displayName(int level) {
-        return MiniMessage.miniMessage().deserialize("<!i><bold>Life Steal");
+        return MiniMessage.miniMessage().deserialize("<!i>Life Steal "+toRoman(level));
     }
 
     @Override

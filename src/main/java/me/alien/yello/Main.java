@@ -1,6 +1,7 @@
 package me.alien.yello;
 
 import me.alien.yello.custome.combat.Base;
+import me.alien.yello.events.PrintHandler;
 import me.alien.yello.events.RandomEvent;
 import me.alien.yello.util.Factorys;
 import me.alien.yello.util.ValueComparator;
@@ -15,6 +16,8 @@ import com.github.twitch4j.common.events.domain.EventUser;
 import com.github.twitch4j.helix.domain.User;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 
+import me.despical.commandframework.CommandFramework;
+import me.despical.commons.string.StringMatcher;
 import me.limeglass.streamelements.api.StreamElements;
 import me.limeglass.streamelements.api.StreamElementsBuilder;
 import net.kyori.adventure.text.Component;
@@ -42,20 +45,25 @@ import java.net.URLConnection;
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static me.alien.yello.MyListener.toMod;
 
 public final class Main extends JavaPlugin {
 
-    private final JSONObject credentials = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/credentials.json")));
-    public final JSONObject redemptions = new JSONObject(Loader.loadFile(getClass().getResourceAsStream("/redemtions.json")));
+    public static Map<String, Boolean> setting = new HashMap<>();
+    private CommandFramework commandFramework;
+    public static final JSONObject credentials = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/credentials.json")));
+    public static final JSONObject redemptions = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/redemtions.json")));
     public static final JSONObject TOOLS = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/tools.json")));
-    ArrayList<Pair<TwitchClient, String>> twitchClients = new ArrayList<>();
-    ArrayList<Pair<String, StreamElements>> SEInterfaces = new ArrayList<>();
-    public final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
-    public final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
-    private final JSONObject mysql = credentials.getJSONObject("mysql");
+    public static final ArrayList<Pair<TwitchClient, String>> twitchClients = new ArrayList<>();
+    public static final ArrayList<Pair<String, StreamElements>> SEInterfaces = new ArrayList<>();
+    public static final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
+    public static final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
+    public static final JSONObject mysql = credentials.getJSONObject("mysql");
     public final ArrayList<String> readmeEventAction = new ArrayList<>();
-    public boolean isConnected = false;
-    public boolean connectChatTwitch = false;
+    public static boolean isConnected = false;
+    public static boolean connectChatTwitch = false;
     public boolean connectChatMinecraft = false;
     public Level minecraftChat = Level.ALL;
     public ArrayList<PotionEffectType> potionEffectTypes = new ArrayList<>();
@@ -65,22 +73,24 @@ public final class Main extends JavaPlugin {
     public Timer looper;
     public Timer pointAccumulation;
     public FileConfiguration config = getConfig();
-    public final Map<String, Integer> viewerPoints = new HashMap<>();
+    public static final Map<String, Integer> viewerPoints = new HashMap<>();
     public ArrayList<String> spawnedHelpers = new ArrayList<>();
     public Team friendlyTeam;
     public Player host;
     public Connection conn = null;
-    public boolean grace = false;
-    public int graceTime = 0;
-    private int graceTimeOrig = 0;
-    private final boolean[] timersNotFinished = new boolean[12];
-    private final int[] timersDelay = new int[12];
+    public static boolean grace = false;
+    public static int graceTime = 0;
+    public static int graceTimeOrig = 0;
+    private static final boolean[] timersNotFinished = new boolean[12];
+    private static final int[] timersDelay = new int[12];
     private Timer timers;
     public String channelId = null;
     public RandomEvent randomEvent;
 
     public static Main plugin;
     public static boolean combat = false;
+    public static Random rand = new Random();
+    public static ArrayList<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>();
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -97,6 +107,34 @@ public final class Main extends JavaPlugin {
 
         Arrays.fill(timersNotFinished, false);
         Arrays.fill(timersDelay, 0);
+
+        getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
+            for(Player p : getServer().getOnlinePlayers()){
+                p.addPotionEffect(PotionEffectType.HUNGER.createEffect(1, 2));
+            }
+        });
+
+        setting.put("redemptions", true);
+        setting.put("crafting", false);
+        setting.put("shared_damage", false);
+        setting.put("explosive_bed", false);
+        setting.put("dnd_combat", true);
+        setting.put("hard_mobs", false);
+
+        commandFramework = new CommandFramework(this);
+        commandFramework.registerCommands(new Commands());
+        commandFramework.setAnyMatch(arguments -> {
+            if(arguments.isArgumentsEmpty()) return;
+
+            String label = arguments.getLabel(), arg = arguments.getArgument(0);
+
+            List<StringMatcher.Match> matches = StringMatcher.match(arg, commandFramework.getCommands().stream().map(cmd -> cmd.name().replace(label+".","")).collect(Collectors.toList()));
+
+            if(!matches.isEmpty()){
+                arguments.sendMessage("Did you mean %command%?".replace("%command%", label + " " + matches.get(0).getMatch()));
+            }
+
+        });
 
 
         /*try {
@@ -316,12 +354,12 @@ public final class Main extends JavaPlugin {
         }*/
     }
 
-    private void onRedemption(RewardRedeemedEvent event, Pair<TwitchClient, String> twitchPair) {
-        Redemption r = new Redemption(event, twitchPair, this);
+    static void onRedemption(RewardRedeemedEvent event, Pair<TwitchClient, String> twitchPair) {
+        Redemption r = new Redemption(event, twitchPair, plugin);
         r.start();
     }
 
-    private void onChatMessage(ChannelMessageEvent event, Pair<TwitchClient, String> twitchPair) {
+    static void onChatMessage(ChannelMessageEvent event, Pair<TwitchClient, String> twitchPair) {
         String command = event.getMessage();
         String[] args = new String[0];
         TwitchClient twitchClient = twitchPair.key;
@@ -373,7 +411,7 @@ public final class Main extends JavaPlugin {
 
                         user1 = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(uname)).execute().getUsers().get(0);
                     } catch (Exception e) {
-                        getServer().getLogger().warning(e.getCause().toString());
+                        plugin.getServer().getLogger().warning(e.getCause().toString());
                     }
                     if (user1 != null) {
                         Long points = instance.getUserPoints(user.getName()).getCurrentPoints();
@@ -404,7 +442,7 @@ public final class Main extends JavaPlugin {
                     Player[] players = null;
 
                     try {
-                        players = getServer().getOnlinePlayers().toArray(new Player[0]);
+                        players = plugin.getServer().getOnlinePlayers().toArray(new Player[0]);
                     } catch (NullPointerException ignored) {
                     }
 
@@ -424,7 +462,7 @@ public final class Main extends JavaPlugin {
                         String redemption = args[0];
                         if (redemption.equalsIgnoreCase("0") || redemption.equalsIgnoreCase("heal")) {
                             if (points >= 100 && !timersNotFinished[0]) {
-                                getServer().getScheduler().runTask(this, () -> player.setHealth(20));
+                                plugin.getServer().getScheduler().runTask(plugin, () -> player.setHealth(20));
                                 if (!removedPoints) {
                                     points -= 100;
                                     removedPoints = true;
@@ -437,7 +475,7 @@ public final class Main extends JavaPlugin {
                             }
                         } else if (redemption.equalsIgnoreCase("1") || redemption.equalsIgnoreCase("feed")) {
                             if (points >= 100 && !timersNotFinished[1]) {
-                                getServer().getScheduler().runTask(this, () -> player.setFoodLevel(20));
+                                plugin.getServer().getScheduler().runTask(plugin, () -> player.setFoodLevel(20));
                                 if (!removedPoints) {
                                     points -= 100;
                                     removedPoints = true;
@@ -464,18 +502,18 @@ public final class Main extends JavaPlugin {
                         } else if (redemption.equalsIgnoreCase("3") || redemption.equalsIgnoreCase("teleport") && !grace) {
                             if (points >= 500 && !timersNotFinished[3]) {
                                 Location loc = player.getLocation();
-                                int x = (int) (Math.random() * ((loc.getBlockX() + 1000) - (loc.getBlockX() - 1000)) + (loc.getBlockX() - 1000)), y = (int) (Math.random() * ((loc.getBlockY() + 1000) - (loc.getBlockY() - 1000)) + (loc.getBlockY() - 1000)), z = (int) (Math.random() * ((loc.getBlockZ() + 1000) - (loc.getBlockZ() - 1000)) + (loc.getBlockZ() - 1000));
+                                int x = (int) (Main.rand.nextDouble()* ((loc.getBlockX() + 1000) - (loc.getBlockX() - 1000)) + (loc.getBlockX() - 1000)), y = (int) (Math.random() * ((loc.getBlockY() + 1000) - (loc.getBlockY() - 1000)) + (loc.getBlockY() - 1000)), z = (int) (Math.random() * ((loc.getBlockZ() + 1000) - (loc.getBlockZ() - 1000)) + (loc.getBlockZ() - 1000));
                                 for (int i = 0; i < 200; i++) {
                                     if (player.getWorld().getBlockAt(x, y, z).getType().isAir() && player.getWorld().getBlockAt(x, y + 1, z).getType().isAir() && y > -60 && y < 360)
                                         break;
-                                    x = (int) (Math.random() * ((loc.getBlockX() + 1000) - (loc.getBlockX() - 1000)) + (loc.getBlockX() - 1000));
-                                    y = (int) (Math.random() * ((loc.getBlockY() + 1000) - (loc.getBlockY() - 1000)) + (loc.getBlockY() - 1000));
-                                    z = (int) (Math.random() * ((loc.getBlockZ() + 1000) - (loc.getBlockZ() - 1000)) + (loc.getBlockZ() - 1000));
+                                    x = (int) (Main.rand.nextDouble() * ((loc.getBlockX() + 1000) - (loc.getBlockX() - 1000)) + (loc.getBlockX() - 1000));
+                                    y = (int) (Main.rand.nextDouble() * ((loc.getBlockY() + 1000) - (loc.getBlockY() - 1000)) + (loc.getBlockY() - 1000));
+                                    z = (int) (Main.rand.nextDouble() * ((loc.getBlockZ() + 1000) - (loc.getBlockZ() - 1000)) + (loc.getBlockZ() - 1000));
                                 }
                                 int finalX = x;
                                 int finalY = y;
                                 int finalZ = z;
-                                getServer().getScheduler().runTask(this, () -> {
+                                plugin.getServer().getScheduler().runTask(plugin, () -> {
                                     if (player.getWorld().getBlockAt(finalX, finalY, finalZ).getType().isAir() && player.getWorld().getBlockAt(finalX, finalY + 1, finalZ).getType().isAir()) {
                                         player.teleport(new Location(player.getWorld(), finalX, finalY, finalZ));
                                     }
@@ -492,7 +530,7 @@ public final class Main extends JavaPlugin {
                             }
                         } else if (redemption.equalsIgnoreCase("4") || redemption.equalsIgnoreCase("hydrate")) {
                             if (points >= 300 && !timersNotFinished[4]) {
-                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("Hydrate"))));
+                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, plugin, redemptions.getString("Hydrate"))));
                                 if (!removedPoints) {
                                     points -= 300;
                                     removedPoints = true;
@@ -505,7 +543,7 @@ public final class Main extends JavaPlugin {
                             }
                         } else if (redemption.equalsIgnoreCase("5") || redemption.equalsIgnoreCase("hiss")) {
                             if (points >= 50 && !timersNotFinished[5]) {
-                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("hiss"))));
+                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, plugin, redemptions.getString("hiss"))));
                                 if (!removedPoints) {
                                     points -= 50;
                                     removedPoints = true;
@@ -518,7 +556,7 @@ public final class Main extends JavaPlugin {
                             }
                         } else if (redemption.equalsIgnoreCase("6") || redemption.equalsIgnoreCase("nut")) {
                             if (points >= 50 && !timersNotFinished[6]) {
-                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("nut"))));
+                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, plugin, redemptions.getString("nut"))));
                                 if (!removedPoints) {
                                     points -= 50;
                                     removedPoints = true;
@@ -531,7 +569,7 @@ public final class Main extends JavaPlugin {
                             }
                         } else if (redemption.equalsIgnoreCase("7") || redemption.equalsIgnoreCase("drop-it")) {
                             if (points >= 100 && !timersNotFinished[7]) {
-                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("Drop it"))));
+                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, plugin, redemptions.getString("Drop it"))));
                                 if (!removedPoints) {
                                     points -= 100;
                                     removedPoints = true;
@@ -544,7 +582,7 @@ public final class Main extends JavaPlugin {
                             }
                         } else if (redemption.equalsIgnoreCase("8") || redemption.equalsIgnoreCase("mission-failed")) {
                             if (points >= 300 && !timersNotFinished[8]) {
-                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, this, redemptions.getString("Mission Failed"))));
+                                twitchClient.getEventManager().publish(new RewardRedeemedEvent(Instant.now(), Factorys.redemptionFactory(user, plugin, redemptions.getString("Mission Failed"))));
                                 if (!removedPoints) {
                                     points -= 300;
                                     removedPoints = true;
@@ -570,9 +608,19 @@ public final class Main extends JavaPlugin {
                 twitchClient.getChat().sendMessage(chat, "Sorry but "+chat+" don't have StreamElements connected so this feature is disabled");
             }
         }
+        else if(command.startsWith("-welcome")){
+            if(args.length > 0){
+                twitchClient.getChat().sendMessage(chat, "Hello "+args[0]+" This is Yello a plugin made by AlienFromDia, Its made for suffering of the streamer and" +
+                        " a sort of player vs streamer. So a basic run thru, Twitch redemptions can d shit, and if the streamer have streamelements connected you can explore the -buy command. I have heard -buy 3 is fun :)");
+            }
+        }
+        else if(command.startsWith("-simping")){
+            twitchClient.getChat().sendMessage(chat, "I'm sorry i'm based on luck. but i will change my seed and we can hope for some more fair activity");
+            rand.setSeed(System.currentTimeMillis());
+        }
         else {
             if (connectChatTwitch && !user.getName().equalsIgnoreCase("StreamElements")) {
-                getServer().sendMessage(Component.text("<" + user.getName() + "> " + event.getMessage()));
+                plugin.getServer().sendMessage(MiniMessage.miniMessage().deserialize("<<"+event.getMessageEvent().getTagValue("color").orElse("null")+">"+user.getName() + "<reset>> " + event.getMessage()));
             }
         }
     }
@@ -608,7 +656,7 @@ public final class Main extends JavaPlugin {
                 i++;
             }
         }
-        else if(label.equalsIgnoreCase("connect")) {
+        /*else if(label.equalsIgnoreCase("connect")) {
             if (args.length > 0) {
                 if(sender instanceof Player p || true) {
                     final String chat = args[0];
@@ -638,16 +686,18 @@ public final class Main extends JavaPlugin {
                         isConnected = true;
                         //host = p;
 
-                        StreamElements instance = null;
-                        try {
-                            instance = new StreamElementsBuilder()
-                                .withAccountID(credentials.getJSONObject("SE").getString(chat.toLowerCase()))
-                                .withToken(credentials.getJSONObject("SE").getString("token"))
-                                .withConnectionTimeout(10000)
-                                .build();
+                        if(credentials.getJSONObject("SE").has(chat.toLowerCase())) {
+                            StreamElements instance = new StreamElementsBuilder()
+                                    .withAccountID(credentials.getJSONObject("SE").getString(chat.toLowerCase()))
+                                    .withToken(credentials.getJSONObject("SE").getString("token"))
+                                    .withConnectionTimeout(10000)
+                                    .build();
                             SEInterfaces.add(new Pair<>(chat, instance));
-                        }catch (Exception e){
-
+                        }
+                        if(credentials.getJSONObject("SL").has(chat.toLowerCase())){
+                            //StreamlabsApi api = StreamlabsApiBuilder.builder()
+                            //        .withClientId("")
+                            //        .build();
                         }
 
                         twitchClients.add(new Pair<>(twitchClient, chat));
@@ -659,8 +709,8 @@ public final class Main extends JavaPlugin {
                 }
                 return true;
             }
-        }
-        else if(label.equalsIgnoreCase("disconnect")) {
+        }*/
+        /*else if(label.equalsIgnoreCase("disconnect")) {
             if(args.length > 0){
                 final String chat = args[0];
                 List<Pair<TwitchClient, String>> pairList = twitchClients.stream().filter(pair -> pair.value.equals(chat)).toList();
@@ -668,6 +718,7 @@ public final class Main extends JavaPlugin {
                     Pair<TwitchClient, String> pair = pairList.get(0);
                     TwitchClient twitchClient = pair.key;
                     twitchClient.getChat().sendMessage(chat, "I was told to leave now so bye!");
+                    twitchClient.getChat().disconnect();
                     twitchClient.close();
                 }
             }else{
@@ -677,8 +728,8 @@ public final class Main extends JavaPlugin {
                 }
             }
             return true;
-        }
-        else if(label.equalsIgnoreCase("send")) {
+        }*/
+        /*else if(label.equalsIgnoreCase("send")) {
             if (args.length > 0) {
                 if(!twitchClients.isEmpty()) {
                     for (Pair<TwitchClient, String> twitchPair : twitchClients) {
@@ -702,8 +753,8 @@ public final class Main extends JavaPlugin {
             getServer().sendMessage(Component.text("<a_twitch_bot_> missing parameters usage /send <text to send>"));
 
             return true;
-        }
-        else if(label.equalsIgnoreCase("chat")) {
+        }*/
+        /*else if(label.equalsIgnoreCase("chat")) {
             if(args.length > 0) {
                 if (!twitchClients.isEmpty()) {
                     for (Pair<TwitchClient, String> twitchPair : twitchClients) {
@@ -741,12 +792,12 @@ public final class Main extends JavaPlugin {
                 }
             }
             else{
-                sender.sendMessage("<a_twitch_bot_> you ar missing parameters use /chat <twitch/minecraft> [all/info/chat note oly works for mc chat and it defaults to all]");
+                sender.sendMessage("<a_twitch_bot_> you ar missing parameters use /chat <twitch/minecraft> [all/info/chat note only works for mc chat and it defaults to all]");
             }
 
             return true;
-        }
-        else if(label.equalsIgnoreCase("grace")) {
+        }*/
+        /*else if(label.equalsIgnoreCase("grace")) {
             if(isConnected){
                 if(args.length > 0){
                     try {
@@ -761,7 +812,7 @@ public final class Main extends JavaPlugin {
                 }
             }
             return true;
-        }
+        }*/
         else if(label.equalsIgnoreCase("points") && false){
             try {
                 URL url = new URL("https://api.streamelements.com/kappa/v2/points/"+credentials.getJSONObject("SE").getString("channel")+"/top/");
@@ -852,6 +903,27 @@ public final class Main extends JavaPlugin {
                     Base.handle(stack, i);
                     p.getInventory().addItem(stack);
                 }catch (Exception ignored){}
+            }
+        }
+        else if(label.equalsIgnoreCase("stats")){
+            if(sender instanceof Player p){
+                List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+                if(stats.isEmpty()){
+                    Map<String, Integer> stats1 = new HashMap<>();
+                    stats1.put("str", toMod(rand.nextInt(20)));
+                    stats1.put("dex", toMod(rand.nextInt(20)));
+                    stats1.put("int", toMod(rand.nextInt(20)));
+                    stats1.put("con", toMod(rand.nextInt(20)));
+                    stats1.put("cha", toMod(rand.nextInt(20)));
+                    stats1.put("wiz", toMod(rand.nextInt(20)));
+                    Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
+                    Main.stats.add(pair);
+                    stats.add(pair);
+                }
+                PrintHandler out = p::sendMessage;
+                for(Map.Entry<String, Integer> pair : stats.get(0).value.entrySet()){
+                    out.print(pair.getKey() + ": " + pair.getValue());
+                }
             }
         }
         return false;

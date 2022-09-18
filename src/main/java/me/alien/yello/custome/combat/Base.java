@@ -3,7 +3,6 @@ package me.alien.yello.custome.combat;
 import me.alien.yello.Main;
 import me.alien.yello.enchantments.Enchantments;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -15,7 +14,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -32,7 +30,7 @@ public class Base {
     @Nullable
     public static ItemStack handle(@NotNull ItemStack itemStack) {
         if(!combat) return null;
-        int rarity = (int) (Math.random()*20);
+        int rarity = (int) (Main.rand.nextDouble()*20);
         return handle(itemStack, rarity);
     }
 
@@ -66,17 +64,17 @@ public class Base {
             case RARE -> {
                 itemMeta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier(UUID.randomUUID(), "test", 3, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
                 itemMeta.addEnchant(Enchantments.LIFE_STEAL, 1, false);
-                lore.add(0, MiniMessage.miniMessage().deserialize("<!i><gray>"+Enchantments.LIFE_STEAL.getName()+" "+toRoman(itemMeta.getEnchantLevel(Enchantments.LIFE_STEAL))));
+                lore.add(0, MiniMessage.miniMessage().deserialize("<gray>"+Enchantments.LIFE_STEAL.displayName(itemMeta.getEnchantLevel(Enchantments.LIFE_STEAL))));
             }
             case LEGENDARY -> {
                 itemMeta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier(UUID.randomUUID(), "test", 6, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
                 itemMeta.addEnchant(Enchantments.LIFE_STEAL, 2, false);
-                lore.add(0, MiniMessage.miniMessage().deserialize("<!i><gray>"+Enchantments.LIFE_STEAL.getName()+" "+toRoman(itemMeta.getEnchantLevel(Enchantments.LIFE_STEAL))));
+                lore.add(0, MiniMessage.miniMessage().deserialize("<gray>"+Enchantments.LIFE_STEAL.displayName(itemMeta.getEnchantLevel(Enchantments.LIFE_STEAL))));
             }
             case MYTHICAL -> {
                 itemMeta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier(UUID.randomUUID(), "test", 10, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
                 itemMeta.addEnchant(Enchantments.LIFE_STEAL, 3, false);
-                lore.add(0, MiniMessage.miniMessage().deserialize("<!i><gray>"+Enchantments.LIFE_STEAL.getName()+" "+toRoman(itemMeta.getEnchantLevel(Enchantments.LIFE_STEAL))));
+                lore.add(0, MiniMessage.miniMessage().deserialize("<gray>"+Enchantments.LIFE_STEAL.displayName(itemMeta.getEnchantLevel(Enchantments.LIFE_STEAL))));
             }
         }
 

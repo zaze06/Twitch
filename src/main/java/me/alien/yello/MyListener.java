@@ -6,32 +6,39 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import me.alien.yello.custome.combat.Base;
 import me.alien.yello.custome.combat.Rarity;
 import me.alien.yello.events.RandomEvent;
+import me.alien.yello.util.dice.Dice;
+import me.alien.yello.util.dice.Dices;
 import me.limeglass.streamelements.api.StreamElements;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntitySpawnEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.lang.reflect.Array;
+import java.util.*;
 
-import static me.alien.yello.Main.TOOLS;
+import static me.alien.yello.Main.*;
 
 public class MyListener implements Listener {
 
@@ -117,6 +124,28 @@ public class MyListener implements Listener {
     }
 
     @EventHandler
+    public void onPlayerBlockBreak(BlockBreakEvent e){
+        Material type = e.getBlock().getType();
+        if(     type == Material.DIAMOND_ORE || type == Material.DEEPSLATE_DIAMOND_ORE || type == Material.IRON_ORE ||
+                type == Material.DEEPSLATE_IRON_ORE || type == Material.COAL_ORE || type == Material.DEEPSLATE_COAL_ORE ||
+                type == Material.REDSTONE_ORE || type == Material.DEEPSLATE_REDSTONE_ORE || type == Material.LAPIS_ORE ||
+                type == Material.DEEPSLATE_LAPIS_ORE || type == Material.GOLD_ORE || type == Material.DEEPSLATE_GOLD_ORE ||
+                type == Material.COPPER_ORE || type == Material.DEEPSLATE_COPPER_ORE || type == Material.EMERALD_ORE ||
+                type == Material.DEEPSLATE_EMERALD_ORE || type == Material.NETHER_GOLD_ORE || type == Material.NETHER_QUARTZ_ORE ||
+                type == Material.ANCIENT_DEBRIS){
+            int x = (int)(Main.rand.nextDouble()*100);
+            if(x <= 12){
+                e.getBlock().getWorld().createExplosion(e.getBlock().getLocation(), 10, true);
+                /*e.getBlock().getWorld().spawn(e.getBlock().getLocation().clone().add(0,1,0), TNTPrimed.class, CreatureSpawnEvent.SpawnReason.CUSTOM, (tnt) ->{
+                    tnt.setSilent(true);
+                    tnt.customName(MiniMessage.miniMessage().deserialize("<red>"+e.getBlock().getType().name()));
+                    tnt.setFuseTicks(0);
+                });*/
+            }
+        }
+    }
+
+    @EventHandler
     public void onPlayerAttackEvent(EntityDamageByEntityEvent e){
         ItemStack item = null;
         if((e.getDamager() instanceof Monster monster)){
@@ -127,6 +156,35 @@ public class MyListener implements Listener {
         }
         if(item == null) return;
 
+    }
+
+    @EventHandler
+    public void shareDamage(EntityDamageByEntityEvent e){
+        if(e.getEntity() instanceof Player p){
+            for(Player p1 : Main.plugin.getServer().getOnlinePlayers()){
+                if(p1.equals(p)) continue;
+                p1.damage(e.getDamage());
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent e){
+        double lowestHp = 20;
+        for(Player p : plugin.getServer().getOnlinePlayers()){
+            if(lowestHp > p.getHealth()){
+                lowestHp = p.getHealth();
+            }
+        }
+        e.getPlayer().setHealth(lowestHp);
+    }
+
+    @EventHandler
+    public void onSleepEvent(PlayerBedEnterEvent e){
+        int odds = (int) Main.rand.nextInt(100);
+        if(odds <= 5){
+            e.getBed().getWorld().createExplosion(e.getBed().getLocation(), 10, true);
+        }
     }
 
     @EventHandler
@@ -153,28 +211,170 @@ public class MyListener implements Listener {
         if(!plugin.friendlyTeam.hasEntity(e.getPlayer())){
             plugin.friendlyTeam.addPlayer(e.getPlayer());
         }
+        double lowestHp = 20;
+        for(Player p : plugin.getServer().getOnlinePlayers()){
+            if(lowestHp > p.getHealth()){
+                lowestHp = p.getHealth();
+            }
+        }
+        e.getPlayer().setHealth(lowestHp);
+
+        if(stats.stream().noneMatch((pair) -> pair.key.equals(e.getPlayer().getUniqueId()))){
+            Map<String, Integer> stats = new HashMap<>();
+            stats.put("str", toMod(rand.nextInt(20)));
+            stats.put("dex", toMod(rand.nextInt(20)));
+            stats.put("int", toMod(rand.nextInt(20)));
+            stats.put("con", toMod(rand.nextInt(20)));
+            stats.put("cha", toMod(rand.nextInt(20)));
+            stats.put("wiz", toMod(rand.nextInt(20)));
+            Main.stats.add(new Pair<>(e.getPlayer().getUniqueId(), stats));
+        }
     }
 
     @EventHandler(priority = EventPriority.LOW)
     public void onAttack(EntityDamageByEntityEvent e){
         int d20 = (int)(Math.random()*19)+1;
-        if(d20 >= 15 && e.getDamager() instanceof Player p){
-            int d6 = (int)(Math.random()*5)+1;
-            double dmg = e.getDamage();
-            double finalDmg = dmg*(0.1*(d6)+1);
-            e.setDamage(finalDmg);
-            p.sendMessage(Component.text("<a_twitch_bot_> ").append(Component.text(((int)e.getFinalDamage())+" hp dealt on enemy", TextColor.color(255, 31, 25))));
-            //p.sendActionBar(Component.text(((int)e.getFinalDamage())+" hp dealt on enemy", TextColor.color(255, 31, 25)));
-            //p.showTitle(Title.title(Component.empty(), Component.text("test"), Title.Times.of(Duration.ofSeconds(1),Duration.ofSeconds(5),Duration.ofSeconds(1))));
-            //p.sendTitlePart(TitlePart.SUBTITLE, Component.text(((int)finalDmg)+" dealt on enemy"));
-        }else{
-            e.setCancelled(true);
+        if(e.getDamager() instanceof Player p){
+            List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+            if(stats.isEmpty()){
+                Map<String, Integer> stats1 = new HashMap<>();
+                stats1.put("str", toMod(rand.nextInt(20)));
+                stats1.put("dex", toMod(rand.nextInt(20)));
+                stats1.put("int", toMod(rand.nextInt(20)));
+                stats1.put("con", toMod(rand.nextInt(20)));
+                stats1.put("cha", toMod(rand.nextInt(20)));
+                stats1.put("wiz", toMod(rand.nextInt(20)));
+                Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
+                Main.stats.add(pair);
+                stats.add(pair);
+            }
+            Map<String, Integer> playerStats = stats.get(0).getValue();
+            if(d20+playerStats.get("str") >= 15) {
+                int d6 = (int) (Math.random() * 5) + 1;
+                double dmg = e.getDamage();
+                double finalDmg = d6 + ((int)((dmg)/2));
+                e.setDamage(finalDmg);
+                p.sendMessage(Component.text("<a_twitch_bot_> ").append(Component.text(((int) e.getFinalDamage()) + " hp dealt on enemy", TextColor.color(255, 31, 25))));
+                //p.sendActionBar(Component.text(((int)e.getFinalDamage())+" hp dealt on enemy", TextColor.color(255, 31, 25)));
+                //p.showTitle(Title.title(Component.empty(), Component.text("test"), Title.Times.of(Duration.ofSeconds(1),Duration.ofSeconds(5),Duration.ofSeconds(1))));
+                //p.sendTitlePart(TitlePart.SUBTITLE, Component.text(((int)finalDmg)+" dealt on enemy"));
+            }else{
+                e.setCancelled(true);
+            }
         }
+    }
+
+    public static Integer toMod(int stat) {
+        if(stat >= 20){
+            return 5;
+        } else if(stat >= 18){
+            return 4;
+        } else if (stat >= 16) {
+            return 3;
+        } else if (stat >= 14) {
+            return 2;
+        } else if (stat >= 12) {
+            return 1;
+        } else if (stat >= 10) {
+            return 0;
+        } else if (stat >= 8) {
+            return -1;
+        } else if (stat >= 6) {
+            return -2;
+        } else if (stat >= 4) {
+            return -3;
+        } else if (stat >= 2) {
+            return -4;
+        } else {
+            return -5;
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDamage(EntityDamageEvent e){
+        if(e.getEntity() instanceof Player p){
+            List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+            if(stats.isEmpty()){
+                Map<String, Integer> stats1 = new HashMap<>();
+                stats1.put("str", toMod(rand.nextInt(20)));
+                stats1.put("dex", toMod(rand.nextInt(20)));
+                stats1.put("int", toMod(rand.nextInt(20)));
+                stats1.put("con", toMod(rand.nextInt(20)));
+                stats1.put("cha", toMod(rand.nextInt(20)));
+                stats1.put("wiz", toMod(rand.nextInt(20)));
+                Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
+                Main.stats.add(pair);
+                stats.add(pair);
+            }
+            Map<String, Integer> playerStats = stats.get(0).getValue();
+            if(e.getCause() == EntityDamageEvent.DamageCause.FALL){
+                if(!(rand.nextInt(20)+playerStats.get("dex") <= e.getDamage()/2)){
+                    int savedDmg = 0;
+                    if(p.getEquipment().getBoots() != null){
+                        ItemMeta itemMeta = p.getEquipment().getBoots().getItemMeta();
+                        if(itemMeta.hasEnchant(Enchantment.PROTECTION_FALL)){
+                            switch (itemMeta.getEnchantLevel(Enchantment.PROTECTION_FALL)){
+                                case 1, 2 -> savedDmg = Dices.D4.roll();
+                                case 3, 4 -> savedDmg = Dices.D6.roll();
+                            }
+                        }
+                    }
+                    e.setDamage(dice(Dices.D6, Dices.D6, Dices.D6)-savedDmg);
+
+                    for(Player p1 : Main.plugin.getServer().getOnlinePlayers()){
+                        if(p1.equals(p)) continue;
+                        p1.damage(e.getDamage());
+                    }
+                }else{
+                    e.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    private double dice(Dice... dices) {
+        double resualt = 0;
+        for(Dice dice : dices){
+            resualt += dice.roll();
+        }
+        return resualt;
     }
 
     @EventHandler()
     public void onCraft(CraftItemEvent e){
         Material type = e.getRecipe().getResult().getType();
+        HumanEntity p = e.getWhoClicked();
+
+        List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+        if(stats.isEmpty()){
+            Map<String, Integer> stats1 = new HashMap<>();
+            stats1.put("str", toMod(rand.nextInt(20)));
+            stats1.put("dex", toMod(rand.nextInt(20)));
+            stats1.put("int", toMod(rand.nextInt(20)));
+            stats1.put("con", toMod(rand.nextInt(20)));
+            stats1.put("cha", toMod(rand.nextInt(20)));
+            stats1.put("wiz", toMod(rand.nextInt(20)));
+            Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
+            Main.stats.add(pair);
+            stats.add(pair);
+        }
+        Map<String, Integer> playerStats = stats.get(0).getValue();
+
+        double wiz = dice(Dices.D20) + playerStats.get("wiz");
+        System.out.println(wiz);
+        if(wiz < 5 && Main.setting.get("crafting")){
+            ItemStack[] matrix = e.getInventory().getMatrix();
+            ArrayList<ItemStack> recipe = new ArrayList<>();
+            for(ItemStack stack : matrix){
+                if(stack != null){
+                    recipe.add(stack);
+                }
+            }
+            int i = rand.nextInt(recipe.size());
+            e.setCurrentItem(recipe.get(i));
+        }
+        type = e.getRecipe().getResult().getType();
+
         boolean isTool = false;
         for(String name : TOOLS.getJSONObject("WEAPON").keySet()){
             if(type.equals(Material.getMaterial(name))){
@@ -183,8 +383,8 @@ public class MyListener implements Listener {
             }
         }
         if(!isTool) return;
-        ItemStack item = Base.handle(e.getRecipe().getResult()).clone();
-        e.getInventory().setResult(item);
+        if(Base.handle(e.getRecipe().getResult()) == null) return;
+        e.getRecipe().getResult().setItemMeta(Base.handle(e.getRecipe().getResult()).getItemMeta());
     }
 
     @EventHandler
@@ -233,6 +433,24 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void onEntitySpawn(EntitySpawnEvent e){
+
+        if(e.getEntity() instanceof Skeleton mob){
+            if(rand.nextInt(100) <= 50) {
+                ItemStack stack = mob.getEquipment().getItemInMainHand();
+                stack.addEnchantment(Enchantment.ARROW_DAMAGE, 5);
+            }
+        }
+        else if(e.getEntity() instanceof Zombie mob){
+            if(rand.nextInt(100) <= 33) {
+                mob.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 999999999, 2));
+                mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 999999999, 3));
+                ItemStack diaSword = new ItemStack(Material.DIAMOND_SWORD);
+                diaSword.addEnchantment(Enchantment.DAMAGE_ALL,3);
+                diaSword.addEnchantment(Enchantment.FIRE_ASPECT,2);
+                mob.getEquipment().setItemInMainHand(diaSword);
+            }
+        }
+
         if(e.getEntity() instanceof Phantom phantom){
             long time = phantom.getWorld().getGameTime();
             Random rand = new Random(time);
@@ -249,6 +467,10 @@ public class MyListener implements Listener {
                 Base.handle(item);
             }
         }
+    }
+
+    public void showArgs(){
+
     }
 
     private void setHp(LivingEntity e, int hp) {

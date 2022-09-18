@@ -96,7 +96,7 @@ public class WorldHandler {
         AtomicReference<Entity> e = new AtomicReference<>();
         AtomicBoolean test = new AtomicBoolean(false);
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            e.set(world.getLivingEntities().get((int) (Math.random() * world.getLivingEntities().size())));
+            e.set(world.getLivingEntities().get((int) (Main.rand.nextDouble() * world.getLivingEntities().size())));
             test.set(true);
             synchronized (test) {
                 test.notifyAll();

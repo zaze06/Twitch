@@ -91,7 +91,7 @@ public class Redemption extends Thread {
             int pPosY = p.getLocation().getBlockY();
             int pPosZ = p.getLocation().getBlockZ();
 
-            int odds = (int) (Math.random() * 100);
+            int odds = (int) (Main.rand.nextDouble() * 100);
 
             System.out.println(odds + "");
             if (plugin.config.getBoolean("Debug")) {
@@ -229,9 +229,9 @@ public class Redemption extends Thread {
                                     }
                                 }
                             }
-                            int i = (int) (Math.random() * plugin.potionEffectTypes.size());
+                            int i = (int) (Main.rand.nextDouble() * plugin.potionEffectTypes.size());
                             p.addPotionEffect(plugin.potionEffectTypes.get(i).createEffect(40 * 20, 4));
-                            i = (int) (Math.random() * plugin.potionEffectTypes.size());
+                            i = (int) (Main.rand.nextDouble() * plugin.potionEffectTypes.size());
                             p.addPotionEffect(plugin.potionEffectTypes.get(i).createEffect(40 * 20, 4));
                         });
                         p.sendMessage(event.getRedemption().getUser().getDisplayName() + " redeemed BalloonPop!");
@@ -252,11 +252,11 @@ public class Redemption extends Thread {
                 } else if (id.equalsIgnoreCase(plugin.redemptions.getString("nut")) && !plugin.grace) {
                     if (odds <= plugin.config.getInt("NutOdds")) {
                         //List of monsters to spawn
-                        int pilliger = ((int) (Math.random() * 2)) + 2;
-                        int vindicators = ((int) (Math.random() * 2)) + 5;
-                        int witch = ((int) (Math.random() * 2)) + 1;
+                        int pilliger = ((int) (Main.rand.nextDouble() * 2)) + 2;
+                        int vindicators = ((int) (Main.rand.nextDouble() * 2)) + 5;
+                        int witch = ((int) (Main.rand.nextDouble() * 2)) + 1;
                         int evoker = 2;
-                        int RavagerVindicator = ((int) (Math.random() * 1)) + 1;
+                        int RavagerVindicator = ((int) (Main.rand.nextDouble() * 1)) + 1;
                         int RavagerEvoker = 1;
 
                         int total = pilliger + vindicators + witch + evoker + RavagerEvoker + RavagerVindicator;
@@ -264,8 +264,8 @@ public class Redemption extends Thread {
                         Location location = p.getLocation();
 // redemtion nut, should spawn some monsters accoring to the list above
                         for (int i = 0; i < total; i++) {
-                            int x = (int) (Math.random() * ((location.getBlockX() + 30) - (location.getBlockX() - 30)) + (location.getBlockX() + 30));
-                            int z = (int) (Math.random() * ((location.getBlockZ() + 30) - (location.getBlockZ() - 30)) + (location.getBlockZ() + 30));
+                            int x = (int) (Main.rand.nextDouble() * ((location.getBlockX() + 30) - (location.getBlockX() - 30)) + (location.getBlockX() + 30));
+                            int z = (int) (Main.rand.nextDouble() * ((location.getBlockZ() + 30) - (location.getBlockZ() - 30)) + (location.getBlockZ() + 30));
                             int y = p.getWorld().getMaxHeight();
 
                             while (p.getWorld().getBlockAt(x, y, z).getType().isAir() && y != p.getWorld().getMinHeight()) {
@@ -377,10 +377,10 @@ public class Redemption extends Thread {
                 } else if (id.equalsIgnoreCase(plugin.redemptions.getString("Name Generator")) && !plugin.grace) {
                     if (odds <= plugin.config.getInt("NameGenOdds")) {
                         plugin.getServer().getScheduler().runTask(plugin, () -> {
-                            p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Main.rand.nextDouble() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                                 e.customName(Component.text(event.getRedemption().getUserInput()));
                             });
-                            p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Math.random() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
+                            p.getWorld().spawn(pos, p.getWorld().getLivingEntities().get((int) (Main.rand.nextDouble() * p.getWorld().getLivingEntities().size())).getClass(), CreatureSpawnEvent.SpawnReason.CUSTOM, e -> {
                                 e.customName(Component.text(event.getRedemption().getUserInput()));
                             });
                         });
