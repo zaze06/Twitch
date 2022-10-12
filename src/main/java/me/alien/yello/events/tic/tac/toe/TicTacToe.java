@@ -1,3 +1,11 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ *
+ * This is not my file nor my code i don't take credit for this
+ */
+
 package me.alien.yello.events.tic.tac.toe;
 
 import me.alien.yello.events.PrintHandler;

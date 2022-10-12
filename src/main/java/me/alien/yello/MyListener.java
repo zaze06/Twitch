@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello;
 
 import com.github.twitch4j.TwitchClient;
@@ -64,22 +70,44 @@ public class MyListener implements Listener {
             e.message(Component.text(""));
             return;
         }
-        for(Pair<TwitchClient, String> pair : plugin.twitchClients) {
+        for(Pair<TwitchClient, String> pair : twitchClients) {
             String chat = pair.value;
             TwitchClient twitchClient = pair.key;
             if (chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.CHAT)) {
                 twitchClient.getChat().sendMessage(chat, "<" + e.getPlayer().getName() + "> " + PlainTextComponentSerializer.plainText().serialize(e.message()));
             }
         }
+
+        for (Player p : plugin.getServer().getOnlinePlayers()){
+            String message = PlainTextComponentSerializer.plainText().serialize(e.message());
+            if(p.equals(e.getPlayer()) && false){
+                p.sendMessage(e.getPlayer().getUniqueId(), message);
+            }else{
+                List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+                Map<String, Integer> playerStats = stats.get(0).getValue();
+                double Int = (dice(Dices.D20) + playerStats.get("int"))/20*100;
+                StringBuilder out = new StringBuilder();
+                for(char c : message.toCharArray()){
+                    int x = rand.nextInt(100);
+                    if(x > Int){
+                        out.append((char)(rand.nextInt(32,127)));
+                    }else{
+                        out.append(c);
+                    }
+                }
+                p.sendMessage(e.getPlayer().getUniqueId(), out.toString());
+            }
+        }
+        e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeathEvent(PlayerDeathEvent e) {
-        for(Pair<TwitchClient, String> pair : plugin.twitchClients) {
+        for(Pair<TwitchClient, String> pair : twitchClients) {
             String chat = pair.value;
             TwitchClient twitchClient = pair.key;
             StreamElements instance = null;
-            List<Pair<String, StreamElements>> pairList = plugin.SEInterfaces.stream().filter(pair1 -> pair1.key.equals(chat)).toList();
+            List<Pair<String, StreamElements>> pairList = SEInterfaces.stream().filter(pair1 -> pair1.key.equals(chat)).toList();
             if(!pairList.isEmpty()) {
                 Pair<String, StreamElements> pair1 = pairList.get(0);
                 instance = pair1.value;
@@ -87,17 +115,17 @@ public class MyListener implements Listener {
 
             if(instance == null) return;
 
-            if (plugin.isConnected && chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.INFO) && e.deathMessage() != null) {
+            if (isConnected && chat != null && plugin.connectChatMinecraft && (plugin.minecraftChat == Level.ALL || plugin.minecraftChat == Level.INFO) && e.deathMessage() != null) {
                 twitchClient.getChat().sendMessage(chat, PlainTextComponentSerializer.plainText().serialize(e.deathMessage()));
             }
-            if (e.getPlayer().getLastDamageCause() instanceof EntityDamageByEntityEvent e1) {
+            if (e.getPlayer().getLastDamageCause() instanceof EntityDamageByEntityEvent e1 && false) {
                 if (e1.getDamager() instanceof LivingEntity killer) {
                     Component component = killer.customName();
                     if (component != null) {
                         String cName = PlainTextComponentSerializer.plainText().serialize(component);
                         User user = null;
                         try {
-                            user = twitchClient.getHelix().getUsers(plugin.credential.getAccessToken(), null, Collections.singletonList(cName)).execute().getUsers().get(0);
+                            user = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, Collections.singletonList(cName)).execute().getUsers().get(0);
                             plugin.getServer().getLogger().info("found user " + user.getDisplayName());
                         } catch (Exception ignore) {
                         }
@@ -105,14 +133,14 @@ public class MyListener implements Listener {
                             instance.addPoints(user.getLogin(), 100);
                             plugin.getServer().getLogger().info("added " + 100 + " to " + user.getDisplayName() + " they now has " + (instance.getUserPoints(user.getLogin()).getCurrentPoints()));
                         } else {
-                            List<User> users = twitchClient.getHelix().getUsers(plugin.credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
+                            List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
                             for (User key : users) {
                                 instance.addPoints(key.getLogin(), 50);
                                 plugin.getServer().getLogger().info("added " + 50 + " to " + key.getDisplayName() + " they now has " + (instance.getUserPoints(key.getLogin()).getCurrentPoints()));
                             }
                         }
                     } else {
-                        List<User> users = twitchClient.getHelix().getUsers(plugin.credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
+                        List<User> users = twitchClient.getHelix().getUsers(credential.getAccessToken(), null, twitchClient.getMessagingInterface().getChatters(chat).execute().getAllViewers()).execute().getUsers();
                         for (User key : users) {
                             instance.addPoints(key.getLogin(), 50);
                             plugin.getServer().getLogger().info("added " + 50 + " to " + key.getDisplayName() + " they now has " + (instance.getUserPoints(key.getLogin()).getCurrentPoints()));
@@ -125,7 +153,11 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void onPlayerBlockBreak(BlockBreakEvent e){
+        Player p = e.getPlayer();
         Material type = e.getBlock().getType();
+        List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+
+        Map<String, Integer> playerStats = stats.get(0).getValue();
         if(     type == Material.DIAMOND_ORE || type == Material.DEEPSLATE_DIAMOND_ORE || type == Material.IRON_ORE ||
                 type == Material.DEEPSLATE_IRON_ORE || type == Material.COAL_ORE || type == Material.DEEPSLATE_COAL_ORE ||
                 type == Material.REDSTONE_ORE || type == Material.DEEPSLATE_REDSTONE_ORE || type == Material.LAPIS_ORE ||
@@ -134,7 +166,7 @@ public class MyListener implements Listener {
                 type == Material.DEEPSLATE_EMERALD_ORE || type == Material.NETHER_GOLD_ORE || type == Material.NETHER_QUARTZ_ORE ||
                 type == Material.ANCIENT_DEBRIS){
             int x = (int)(Main.rand.nextDouble()*100);
-            if(x <= 12){
+            if(x+playerStats.get("dex") <= 12){
                 e.getBlock().getWorld().createExplosion(e.getBlock().getLocation(), 10, true);
                 /*e.getBlock().getWorld().spawn(e.getBlock().getLocation().clone().add(0,1,0), TNTPrimed.class, CreatureSpawnEvent.SpawnReason.CUSTOM, (tnt) ->{
                     tnt.setSilent(true);
@@ -160,7 +192,7 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void shareDamage(EntityDamageByEntityEvent e){
-        if(e.getEntity() instanceof Player p){
+        if(e.getEntity() instanceof Player p && setting.get("shared_damage")){
             for(Player p1 : Main.plugin.getServer().getOnlinePlayers()){
                 if(p1.equals(p)) continue;
                 p1.damage(e.getDamage());
@@ -171,6 +203,7 @@ public class MyListener implements Listener {
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent e){
         double lowestHp = 20;
+        if(!setting.get("shared_damage")) return;
         for(Player p : plugin.getServer().getOnlinePlayers()){
             if(lowestHp > p.getHealth()){
                 lowestHp = p.getHealth();
@@ -181,8 +214,8 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void onSleepEvent(PlayerBedEnterEvent e){
-        int odds = (int) Main.rand.nextInt(100);
-        if(odds <= 5){
+        double odds = Main.rand.nextDouble(100);
+        if(odds <= 0.5){
             e.getBed().getWorld().createExplosion(e.getBed().getLocation(), 10, true);
         }
     }
@@ -265,47 +298,16 @@ public class MyListener implements Listener {
     }
 
     public static Integer toMod(int stat) {
-        if(stat >= 20){
-            return 5;
-        } else if(stat >= 18){
-            return 4;
-        } else if (stat >= 16) {
-            return 3;
-        } else if (stat >= 14) {
-            return 2;
-        } else if (stat >= 12) {
-            return 1;
-        } else if (stat >= 10) {
-            return 0;
-        } else if (stat >= 8) {
-            return -1;
-        } else if (stat >= 6) {
-            return -2;
-        } else if (stat >= 4) {
-            return -3;
-        } else if (stat >= 2) {
-            return -4;
-        } else {
-            return -5;
-        }
+        int mod = 1;
+        mod *= Math.floor((stat-10)/2);
+        return mod;
     }
 
     @EventHandler
     public void onPlayerDamage(EntityDamageEvent e){
         if(e.getEntity() instanceof Player p){
             List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
-            if(stats.isEmpty()){
-                Map<String, Integer> stats1 = new HashMap<>();
-                stats1.put("str", toMod(rand.nextInt(20)));
-                stats1.put("dex", toMod(rand.nextInt(20)));
-                stats1.put("int", toMod(rand.nextInt(20)));
-                stats1.put("con", toMod(rand.nextInt(20)));
-                stats1.put("cha", toMod(rand.nextInt(20)));
-                stats1.put("wiz", toMod(rand.nextInt(20)));
-                Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
-                Main.stats.add(pair);
-                stats.add(pair);
-            }
+
             Map<String, Integer> playerStats = stats.get(0).getValue();
             if(e.getCause() == EntityDamageEvent.DamageCause.FALL){
                 if(!(rand.nextInt(20)+playerStats.get("dex") <= e.getDamage()/2)){
@@ -321,9 +323,11 @@ public class MyListener implements Listener {
                     }
                     e.setDamage(dice(Dices.D6, Dices.D6, Dices.D6)-savedDmg);
 
-                    for(Player p1 : Main.plugin.getServer().getOnlinePlayers()){
-                        if(p1.equals(p)) continue;
-                        p1.damage(e.getDamage());
+                    if(setting.get("shared_damage")) {
+                        for (Player p1 : Main.plugin.getServer().getOnlinePlayers()) {
+                            if (p1.equals(p)) continue;
+                            p1.damage(e.getDamage());
+                        }
                     }
                 }else{
                     e.setCancelled(true);
@@ -346,18 +350,7 @@ public class MyListener implements Listener {
         HumanEntity p = e.getWhoClicked();
 
         List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
-        if(stats.isEmpty()){
-            Map<String, Integer> stats1 = new HashMap<>();
-            stats1.put("str", toMod(rand.nextInt(20)));
-            stats1.put("dex", toMod(rand.nextInt(20)));
-            stats1.put("int", toMod(rand.nextInt(20)));
-            stats1.put("con", toMod(rand.nextInt(20)));
-            stats1.put("cha", toMod(rand.nextInt(20)));
-            stats1.put("wiz", toMod(rand.nextInt(20)));
-            Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
-            Main.stats.add(pair);
-            stats.add(pair);
-        }
+
         Map<String, Integer> playerStats = stats.get(0).getValue();
 
         double wiz = dice(Dices.D20) + playerStats.get("wiz");
@@ -433,21 +426,21 @@ public class MyListener implements Listener {
 
     @EventHandler
     public void onEntitySpawn(EntitySpawnEvent e){
-
-        if(e.getEntity() instanceof Skeleton mob){
-            if(rand.nextInt(100) <= 50) {
-                ItemStack stack = mob.getEquipment().getItemInMainHand();
-                stack.addEnchantment(Enchantment.ARROW_DAMAGE, 5);
-            }
-        }
-        else if(e.getEntity() instanceof Zombie mob){
-            if(rand.nextInt(100) <= 33) {
-                mob.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 999999999, 2));
-                mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 999999999, 3));
-                ItemStack diaSword = new ItemStack(Material.DIAMOND_SWORD);
-                diaSword.addEnchantment(Enchantment.DAMAGE_ALL,3);
-                diaSword.addEnchantment(Enchantment.FIRE_ASPECT,2);
-                mob.getEquipment().setItemInMainHand(diaSword);
+        if(setting.get("hard_mobs")) {
+            if (e.getEntity() instanceof Skeleton mob) {
+                if (rand.nextInt(100) <= 50) {
+                    ItemStack stack = mob.getEquipment().getItemInMainHand();
+                    stack.addEnchantment(Enchantment.ARROW_DAMAGE, 5);
+                }
+            } else if (e.getEntity() instanceof Zombie mob) {
+                if (rand.nextInt(100) <= 33) {
+                    mob.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 999999999, 2));
+                    mob.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 999999999, 3));
+                    ItemStack diaSword = new ItemStack(Material.DIAMOND_SWORD);
+                    diaSword.addEnchantment(Enchantment.DAMAGE_ALL, 3);
+                    diaSword.addEnchantment(Enchantment.FIRE_ASPECT, 2);
+                    mob.getEquipment().setItemInMainHand(diaSword);
+                }
             }
         }
 
@@ -465,6 +458,9 @@ public class MyListener implements Listener {
             ItemStack item = monster.getEquipment().getItemInMainHand();
             if(!item.getType().isAir()){
                 Base.handle(item);
+                if(item != null){
+                    monster.getEquipment().setItemInMainHand(item);
+                }
             }
         }
     }

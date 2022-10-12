@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello;
 
 import com.github.twitch4j.TwitchClient;
@@ -108,9 +114,9 @@ public class Redemption extends Thread {
                     //pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
                     //pi.eval(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
 
-                    imp.createFromCode("shared", pi.compile(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n")));
+                    imp.createFromCode("shared", pi.compile(Loader.loadFile(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
                     //imp.load(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/shared.py"), "\n"));
-                    pi.exec(Loader.loadFile(new FileInputStream(System.getProperty("user.dir") + "/data/redemtions/" + redemtion), "\n"));
+                    pi.exec(Loader.loadFile(System.getProperty("user.dir") + "/data/redemtions/" + redemtion, "\n"));
                     AtomicBoolean redemtionID = new AtomicBoolean(false);
                     AtomicBoolean redemtionName = new AtomicBoolean(false);
                     try{

@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello.enchantments;
 
 import io.papermc.paper.enchantments.EnchantmentRarity;
@@ -22,7 +28,7 @@ public class LifeSteal extends Enchantment {
 
     @Override
     public @NotNull String getName() {
-        return "Life Steal";
+        return "null";
     }
 
     @Override

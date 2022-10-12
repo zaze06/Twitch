@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello.events;
 
 import me.alien.yello.events.maze.Maze;
@@ -20,7 +26,7 @@ public class RandomEvent extends Thread{
     }
     public static Player player;
     public static boolean isRunning = false;
-    public Class<?>[] events = new Class<?>[]{TicTacToe.class, Minesweeper.class, ExploadingMaze.class, Maze.class, Monster.class};
+    public Class<?>[] events = new Class<?>[]{TicTacToe.class, Minesweeper.class, Maze.class, Monster.class};
 
 
     public static void addData(Object data){

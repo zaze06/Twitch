@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello.events.noughts.and.crosses;
 
 import me.alien.yello.events.Event;

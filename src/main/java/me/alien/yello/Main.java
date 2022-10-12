@@ -1,7 +1,12 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello;
 
 import me.alien.yello.custome.combat.Base;
-import me.alien.yello.events.PrintHandler;
 import me.alien.yello.events.RandomEvent;
 import me.alien.yello.util.Factorys;
 import me.alien.yello.util.ValueComparator;
@@ -9,7 +14,6 @@ import com.github.philippheuer.credentialmanager.CredentialManager;
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
-import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.auth.providers.TwitchIdentityProvider;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import com.github.twitch4j.common.events.domain.EventUser;
@@ -17,9 +21,7 @@ import com.github.twitch4j.helix.domain.User;
 import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
 
 import me.despical.commandframework.CommandFramework;
-import me.despical.commons.string.StringMatcher;
 import me.limeglass.streamelements.api.StreamElements;
-import me.limeglass.streamelements.api.StreamElementsBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -45,22 +47,20 @@ import java.net.URLConnection;
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static me.alien.yello.MyListener.toMod;
+import java.util.logging.Logger;
 
 public final class Main extends JavaPlugin {
 
     public static Map<String, Boolean> setting = new HashMap<>();
     private CommandFramework commandFramework;
-    public static final JSONObject credentials = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/credentials.json")));
-    public static final JSONObject redemptions = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/redemtions.json")));
-    public static final JSONObject TOOLS = new JSONObject(Loader.loadFile(Main.class.getResourceAsStream("/tools.json")));
+    public static final JSONObject credentials = new JSONObject(Loader.loadFile(System.getProperty("user.dir")+"/data/credentials.json", "", Main.class.getResource("/credentials.json.old").getFile()));
+    public static final JSONObject redemptions = new JSONObject(Loader.loadFile(Main.class.getResource("/redemtions.json").getFile()));
+    public static final JSONObject TOOLS = new JSONObject(Loader.loadFile(Main.class.getResource("/tools.json").getFile()));
     public static final ArrayList<Pair<TwitchClient, String>> twitchClients = new ArrayList<>();
     public static final ArrayList<Pair<String, StreamElements>> SEInterfaces = new ArrayList<>();
     public static final OAuth2Credential credential = new OAuth2Credential("twitch", credentials.getString("user_ID"));
     public static final CredentialManager credentialManager = CredentialManagerBuilder.builder().build();
-    public static final JSONObject mysql = credentials.getJSONObject("mysql");
+    //public static final JSONObject mysql = credentials.getJSONObject("mysql");
     public final ArrayList<String> readmeEventAction = new ArrayList<>();
     public static boolean isConnected = false;
     public static boolean connectChatTwitch = false;
@@ -91,6 +91,7 @@ public final class Main extends JavaPlugin {
     public static boolean combat = false;
     public static Random rand = new Random();
     public static ArrayList<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>();
+    public static Logger logger;
 
     public static void main(String[] args) {
         Main main = new Main();
@@ -100,6 +101,7 @@ public final class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
+        logger = getLogger();
 
         randomEvent = new RandomEvent(this);
 
@@ -120,10 +122,13 @@ public final class Main extends JavaPlugin {
         setting.put("explosive_bed", false);
         setting.put("dnd_combat", true);
         setting.put("hard_mobs", false);
+        setting.put("custom_combat", false);
+        setting.put("chat_read", false);
+
 
         commandFramework = new CommandFramework(this);
         commandFramework.registerCommands(new Commands());
-        commandFramework.setAnyMatch(arguments -> {
+        /*commandFramework.setAnyMatch(arguments -> {
             if(arguments.isArgumentsEmpty()) return;
 
             String label = arguments.getLabel(), arg = arguments.getArgument(0);
@@ -134,7 +139,7 @@ public final class Main extends JavaPlugin {
                 arguments.sendMessage("Did you mean %command%?".replace("%command%", label + " " + matches.get(0).getMatch()));
             }
 
-        });
+        });*/
 
 
         /*try {
@@ -168,10 +173,28 @@ public final class Main extends JavaPlugin {
             File file = new File(System.getProperty("user.dir")+"/data/redemtions");
             if(!file.exists()){
                 file.mkdirs();
+                for(File f : new File(getClass().getResource("/redemtions").getFile()).listFiles()){
+                    if(Arrays.stream(file.listFiles()).filter((file1 -> file1.getName().equalsIgnoreCase(f.getName()))).toList().size() > 0){
+                        File f1 = new File(file, f.getName());
+                        f1.createNewFile();
+                        BufferedWriter out = new BufferedWriter(new FileWriter(f1));
+                        out.write(Loader.loadFile(f.getPath(), "\n"));
+                        out.flush();
+                        out.close();
+                    }
+                }
+            }
+            for(File f : file.listFiles()){
+                if(!Loader.loadFile(f.getPath()).equals(Loader.loadFile(getClass().getResource("/redemtions/"+f.getName()).getFile()))){
+                    BufferedWriter out = new BufferedWriter(new FileWriter(f));
+                    out.write(Loader.loadFile(f.getPath(), "\n"));
+                    out.flush();
+                    out.close();
+                }
             }
             readmeEventAction.addAll(Arrays.asList((Objects.requireNonNull(file.list((dir, name) -> !name.equals("shared.py"))))));
-        }catch (NullPointerException ignored){
-
+        }catch (Exception ignored){
+            ignored.printStackTrace();
         }
 
         /*if(conn != null) {
@@ -905,7 +928,7 @@ public final class Main extends JavaPlugin {
                 }catch (Exception ignored){}
             }
         }
-        else if(label.equalsIgnoreCase("stats")){
+        /*else if(label.equalsIgnoreCase("stats")){
             if(sender instanceof Player p){
                 List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
                 if(stats.isEmpty()){
@@ -925,7 +948,7 @@ public final class Main extends JavaPlugin {
                     out.print(pair.getKey() + ": " + pair.getValue());
                 }
             }
-        }
+        }*/
         return false;
     }
 }

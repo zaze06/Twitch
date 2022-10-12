@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello.custome.combat;
 
 import me.alien.yello.Main;
@@ -17,8 +23,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import static me.alien.yello.Main.TOOLS;
-import static me.alien.yello.Main.combat;
+import static me.alien.yello.Main.*;
 import static me.alien.yello.util.RomanNumber.toRoman;
 
 public class Base {
@@ -29,7 +34,7 @@ public class Base {
      */
     @Nullable
     public static ItemStack handle(@NotNull ItemStack itemStack) {
-        if(!combat) return null;
+        if(!setting.get("custom_combat")) return null;
         int rarity = (int) (Main.rand.nextDouble()*20);
         return handle(itemStack, rarity);
     }

@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello;
 
 import me.limeglass.streamelements.api.StreamElements;
@@ -7,7 +13,7 @@ import me.limeglass.streamelements.api.objects.User;
 import org.json.JSONObject;
 
 public class Test {
-    private static final JSONObject credentials = new JSONObject(Loader.loadFile(Test.class.getResourceAsStream("/credentials.json"))).getJSONObject("SE");
+    private static final JSONObject credentials = new JSONObject(Loader.loadFile(Test.class.getResource("/credentials.json.old").getFile())).getJSONObject("SE");
 
     public static void main(String[] args) {
 

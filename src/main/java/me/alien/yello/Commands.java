@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022. Zacharias Zellén
+ */
+
 package me.alien.yello;
 
 import com.github.twitch4j.TwitchClient;
@@ -13,6 +19,7 @@ import me.limeglass.streamelements.api.StreamElements;
 import me.limeglass.streamelements.api.StreamElementsBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -25,8 +32,7 @@ public class Commands {
     @Command(name = "connect",
             desc = "Connects to a twitch chat",
             usage = "/connect <twitch user>",
-            min = 1,
-            max = 1)
+            min = 1)
     public void connectCommand(CommandArguments arguments){
         final String chat = arguments.getArgument(0);
         CommandSender sender = arguments.getSender();
@@ -83,8 +89,7 @@ public class Commands {
 
     @Command(name = "disconnect",
             desc = "Disconnects for a twitch channel",
-            usage = "/disconnect [<Twitch user>]",
-            max = 1
+            usage = "/disconnect [<Twitch user>]"
     )
     public void disconnectCommand(CommandArguments arguments){
         String[] args = arguments.getArguments();
@@ -149,8 +154,7 @@ public class Commands {
 
     @Command(name = "chat",
             desc = "Enable bi/single direcinal chat",
-            min = 1,
-            max = 2
+            min = 1
     )
     public void chatCommand(CommandArguments arguments){
         String[] args = arguments.getArguments();
@@ -212,9 +216,7 @@ public class Commands {
     }
 
     @Command(name = "grace",
-            desc = "Sets the grace time",
-            max = 1,
-            min = 1
+            desc = "Sets the grace time"
     )
     public void graceCommand(CommandArguments arguments){
         String[] args = arguments.getArguments();
@@ -239,14 +241,21 @@ public class Commands {
 
     @Command(name = "stat",
             desc = "gives the stat of ether yourself or a friend",
-            max = 1,
             senderType = Command.SenderType.PLAYER
     )
     public void statsCommand(CommandArguments arguments){
 
-        Player p = arguments.getSender();
 
-        List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(p.getUniqueId())).toList());
+        Player sender = arguments.getSender(), player = !arguments.isArgumentsEmpty() ? plugin.getServer().getPlayer(arguments.getArgument(0)) : sender;
+
+        if(player == null){
+            arguments.sendMessage("invalid");
+            return;
+        }
+
+        //player.sendMessage("test");
+
+        List<Pair<UUID, Map<String, Integer>>> stats = new ArrayList<>(Main.stats.stream().filter((pair) -> pair.key.equals(player.getUniqueId())).toList());
         if(stats.isEmpty()){
             Map<String, Integer> stats1 = new HashMap<>();
             stats1.put("str", toMod(rand.nextInt(20)));
@@ -255,13 +264,62 @@ public class Commands {
             stats1.put("con", toMod(rand.nextInt(20)));
             stats1.put("cha", toMod(rand.nextInt(20)));
             stats1.put("wiz", toMod(rand.nextInt(20)));
-            Pair<UUID, Map<String, Integer>> pair = new Pair<>(p.getUniqueId(), stats1);
+            Pair<UUID, Map<String, Integer>> pair = new Pair<>(player.getUniqueId(), stats1);
             Main.stats.add(pair);
             stats.add(pair);
         }
-        PrintHandler out = p::sendMessage;
+        PrintHandler out = player::sendMessage;
         for(Map.Entry<String, Integer> pair : stats.get(0).value.entrySet()){
             out.print(pair.getKey() + ": " + pair.getValue());
+        }
+    }
+
+    @Completer(name = "stat")
+    public List<String> statsCommandCompleter(CommandArguments arguments){
+        ArrayList<String> playerNames = new ArrayList<>();
+        for(Player p : plugin.getServer().getOnlinePlayers()){
+            playerNames.add(PlainTextComponentSerializer.plainText().serialize(p.displayName()));
+        }
+        return playerNames;
+    }
+
+    @Command(name = "config",
+            min = 2
+    )
+    public void config(CommandArguments arguments){
+        if(arguments.getArguments().length >= 2){
+            try {
+                setting.replace(arguments.getArgument(0), Boolean.parseBoolean(arguments.getArgument(1)));
+                arguments.sendMessage(arguments.getArgument(0)+" is now set to "+arguments.getArgument(1));
+            }catch (Exception ignore){
+                arguments.sendMessage(arguments.getArgument(0)+" dos not exist");
+            }
+        }else if(arguments.getArguments().length >= 1){
+            try {
+                arguments.sendMessage(arguments.getArgument(0)+" is set to "+setting.get(arguments.getArgument(0)));
+            }catch (Exception ignore){
+                arguments.sendMessage(arguments.getArgument(0)+" dos not exist");
+            }
+        }
+    }
+
+    @Completer(name = "config")
+    public ArrayList<String> configCompleter(CommandArguments arguments){
+        ArrayList<String> out = new ArrayList<>(setting.keySet().stream().toList());
+        if(arguments.getArgument(0) != null){
+            if(setting.keySet().stream().toList().contains(arguments.getArgument(0))) {
+                out = new ArrayList<>();
+                out.add("true");
+                out.add("false");
+            }
+        }
+        return out;
+    }
+
+    @Command(name = "settings")
+    public void settings(CommandArguments arguments){
+        for (Map.Entry<String, Boolean> set : setting.entrySet()){
+            arguments.sendMessage(set.getKey()+" is set to "+set.getValue());
         }
     }
 }
